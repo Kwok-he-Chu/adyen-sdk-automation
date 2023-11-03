@@ -47,7 +47,3 @@ jobs:
         author: ${{ secrets.ADYEN_AUTOMATION_BOT_EMAIL }}
         base: develop
         branch: sdk-automation/models
-        add-paths: |
-          src
-          Adyen/Model
-          Adyen/Service
