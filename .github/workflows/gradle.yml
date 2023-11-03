@@ -1,4 +1,4 @@
-name: Generate SDKs
+name: Update SDKs
 
 on:
   workflow_dispatch:
@@ -34,9 +34,9 @@ jobs:
       id: vars
       run: |
         cd schema
-        echo ::set-output name=pr_title::"Update all services"
-        echo ::set-output name=pr_body::"OpenAPI spec or templates produced new services + models on $(date +%d-%m-%Y) \
-          by [commit](https://github.com/Adyen/adyen-openapi/commit/$(git rev-parse HEAD))."
+        echo pr_title="Update all services" >> "$GITHUB_OUTPUT"
+        echo pr_body="OpenAPI spec or templates produced changes on $(date +%d-%m-%Y) \
+          by [commit](https://github.com/Adyen/adyen-openapi/commit/$(git rev-parse HEAD))." >> "$GITHUB_OUTPUT"
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
       with:
