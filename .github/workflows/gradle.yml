@@ -41,10 +41,13 @@ jobs:
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@153407881ec5c347639a548ade7d8ad1d6740e38 # v5.0.2
       with:
+        path: ${{ matrix.project }}/repo
         token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
         committer: ${{ secrets.ADYEN_AUTOMATION_BOT_EMAIL }}
         author: ${{ secrets.ADYEN_AUTOMATION_BOT_EMAIL }}
         base: develop
         branch: sdk-automation/models
         add-paths: |
-          ${{ matrix.project }}/repo
+          src
+          Adyen/Model
+          Adyen/Service
