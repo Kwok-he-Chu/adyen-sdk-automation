@@ -21,7 +21,8 @@ jobs:
       with:
         java-version: '11'
         distribution: 'temurin'
-    - uses: actions/checkout@v4
+    - name: Clone ${{ matrix.project }} repository
+      uses: actions/checkout@v4
       with:
         token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
         repository: Adyen/adyen-${{ matrix.project }}-api-library
