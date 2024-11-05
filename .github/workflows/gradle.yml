@@ -8,6 +8,7 @@ on:
       - '**/README.md'
       - README.md
       - LICENSE
+      - .github/CODEOWNERS
 
 permissions:
   contents: read
