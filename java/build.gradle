@@ -71,6 +71,7 @@ services.each { Service svc ->
             delete layout.projectDirectory.dir("repo/src/main/java/com/adyen/service/${serviceId}")
         }
 
+        // copy newly generated services
         from layout.buildDirectory.dir("services/$svc.id/src/main/java/com/adyen/service/${serviceId}")
         into layout.projectDirectory.dir("repo/src/main/java/com/adyen/service/" + serviceId)
     }
