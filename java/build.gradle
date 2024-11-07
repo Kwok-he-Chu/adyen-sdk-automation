@@ -115,7 +115,7 @@ services.each { Service svc ->
     tasks.named(svc.id) { dependsOn deployModels, deployServices, deploySerializers, deploySmallServices }
 }
 
-// Tests
+// Test small services generation
 tasks.named('binlookup') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/binlookup/Amount.java").exists()
@@ -123,12 +123,14 @@ tasks.named('binlookup') {
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/binlookup/DefaultApi.java").exists()
     }
 }
+// Test services generation
 tasks.named('checkout') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/checkout/Amount.java").exists()
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/checkout/PaymentsApi.java").exists()
     }
 }
+// Test webhooks generation
 tasks.named('acswebhooks') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/acswebhooks/Amount.java").exists()
