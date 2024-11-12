@@ -84,11 +84,15 @@ tasks.named('generateLegalEntityManagement', GenerateTask) {
     packageName.set('legalentity')
 }
 
-// Rename webhooks
+// Generate and rename webhooks
 services.findAll { it.name.endsWith('Webhooks') }.each { Service svc ->
-    def singular = svc.id.dropRight(1)
+    def singular = svc.id.dropRight(1)  // drop s (e.g. from AcsWebhooks to AcsWebhook)
     tasks.named("generate${svc.name}", GenerateTask) { packageName.set(singular) }
-    tasks.named("deploy${svc.name}", Copy) { into layout.projectDirectory.dir("repo/src/${singular}") }
+    tasks.named("deploy${svc.name}", Copy) {
+        def targetDir = layout.projectDirectory.dir("repo/src/${singular}")
+        delete targetDir // Drop content first
+        into targetDir // Copy models
+    }
 }
 
 tasks.named('deployLegalEntityManagement', Copy) {
