@@ -90,7 +90,12 @@ services.findAll { it.name.endsWith('Webhooks') }.each { Service svc ->
     tasks.named("generate${svc.name}", GenerateTask) { packageName.set(singular) }
     tasks.named("deploy${svc.name}", Copy) {
         def targetDir = layout.projectDirectory.dir("repo/src/${singular}")
-        delete targetDir // Drop content first
+        // Drop content first (except webhook_handler.go)
+        targetDir.asFile.listFiles().each { file ->
+            if (file.name != 'webhook_handler.go') {
+                file.delete()
+            }
+        }
         into targetDir // Copy models
     }
 }
