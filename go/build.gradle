@@ -59,8 +59,13 @@ services.each { Service svc ->
         dependsOn generateTask
         outputs.upToDateWhen { false }
 
+        // delete existing services and models
+        doFirst {
+            delete layout.projectDirectory.dir("repo/src/$svc.id")
+        }
+
         from layout.buildDirectory.dir("services/$svc.id")
-        include "**/*.go"
+        include "**/*"
         into layout.projectDirectory.dir("repo/src/$svc.id")
     }
 
@@ -94,10 +99,17 @@ tasks.named('deployPayment', Copy) {
     into layout.projectDirectory.dir("repo/src/payments")
 }
 
-// These don't need a "index"
-services.findAll({ it.small || it.name.endsWith('Webhooks') }).each { Service svc ->
+// Small services (skip client.go as single class service does not need an "index" to group multiple tags)
+services.findAll({ it.small }).each { Service svc ->
     tasks.named("deploy${svc.name}", Copy) {
-        exclude 'client.go', 'api_default.go'
+        exclude 'client.go'
+    }
+}
+
+// Webhooks (skip client.go and copy models only)
+services.findAll({ it.name.endsWith('Webhooks') }).each { Service svc ->
+    tasks.named("deploy${svc.name}", Copy) {
+        exclude 'client.go'
     }
 }
 
@@ -105,5 +117,29 @@ services.findAll({ it.small || it.name.endsWith('Webhooks') }).each { Service sv
 ['generateBalancePlatform', 'generateTransfers', 'generateManagement'].each {
     tasks.named(it, GenerateTask) {
         additionalProperties.put('hasRestServiceError', 'true')
+    }
+}
+
+// Test small services
+tasks.named('binlookup') {
+    doLast {
+        assert file("${layout.projectDirectory}/repo/src/binlookup/model_amount.go").exists()
+        assert !file("${layout.projectDirectory}/repo/src/binlookup/api_default.go").exists()
+        assert file("${layout.projectDirectory}/repo/src/binlookup/api_general.go").exists()
+    }
+}
+// Test services
+tasks.named('checkout') {
+    doLast {
+        assert file("${layout.projectDirectory}/repo/src/checkout/model_amount.go").exists()
+        assert !file("${layout.projectDirectory}/repo/src/checkout/api_default.go").exists()
+        assert file("${layout.projectDirectory}/repo/src/checkout/api_donations.go").exists()
+    }
+}
+// Test webhooks
+tasks.named('acswebhooks') {
+    doLast {
+        assert file("${layout.projectDirectory}/repo/src/acswebhook/model_amount.go").exists()
+        assert !file("${layout.projectDirectory}/repo/src/checkout/api_default.go").exists()
     }
 }

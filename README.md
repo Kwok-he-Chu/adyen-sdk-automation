@@ -9,6 +9,12 @@ To generate all services in all libraries, run:
 ```
 *Note:*  Ensure that the service is in the following list: [`adyen.sdk-automation-conventions.gradle`](/buildSrc/src/main/groovy/adyen.sdk-automation-conventions.gradle).
 
+For all services in a library, run:
+
+```
+ ./gradlew :go:services
+
+```
 
 For a single specific service:
 
