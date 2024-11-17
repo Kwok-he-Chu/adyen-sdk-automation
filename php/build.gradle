@@ -44,14 +44,24 @@ services.findAll({ !it.small }).each { Service svc ->
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
+        // Cleanup existing non-small Models and Services before generation
+        doFirst {
+            logger.lifecycle("Cleaning up existing files for $svc.name")
+            delete layout.projectDirectory.dir("repo/src/Adyen/Service/$svc.name")
+            delete layout.projectDirectory.dir("repo/src/Adyen/Model/$svc.name")
+        }
+
+        // Set the destination directory for copied files
         into layout.projectDirectory.dir("repo/src/Adyen")
         def sourcePath = "services/$svc.id/lib"
 
+        // Copy generated Model and Service PHP files
         from(layout.buildDirectory.dir(sourcePath)) {
             include "Model/**/*.php"
             include "Service/**/*.php"
         }
 
+        // Copy ObjectSerializer.php to the specific model directory
         from(layout.buildDirectory.file("$sourcePath/ObjectSerializer.php")) {
             into "Model/" + serviceNaming[svc.id]
         }
@@ -60,6 +70,7 @@ services.findAll({ !it.small }).each { Service svc ->
     tasks.named(svc.id) { dependsOn deploy }
 }
 
+// Deployment tasks for small services
 smallServices.each { Service svc ->
     def serviceName = serviceNaming[svc.id]
     def deploy = tasks.register("deploy$svc.name", Copy) {
