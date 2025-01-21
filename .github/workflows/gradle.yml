@@ -98,8 +98,8 @@ jobs:
       id: vars
       run: |
         cd schema
-        echo pr_title="Update all services" >> "$GITHUB_OUTPUT"
-        echo pr_body="OpenAPI spec or templates produced changes on $(date +%d-%m-%Y) \
+        echo pr_title="Code generation: update services and models" >> "$GITHUB_OUTPUT"
+        echo pr_body="OpenAPI spec files or templates have been modified on $(date +%d-%m-%Y) \
           by [commit](https://github.com/Adyen/adyen-openapi/commit/$(git rev-parse HEAD)). \
           Download [OpenAPI diffs](${{ env.ARTIFACT_URL }}) to view the changes." >> "$GITHUB_OUTPUT"
     - name: Create Pull Request
