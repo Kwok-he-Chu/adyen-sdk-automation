@@ -30,6 +30,7 @@ List<Service> services = [
         new Service(name: 'BalancePlatform', version: 2),
         new Service(name: 'Transfers', spec: 'TransferService', version: 4),
         new Service(name: 'DataProtection', version: 1, small: true),
+        new Service(name: 'ForeignExchange', spec: 'ForeignExchangeService', version: 1),
         // Classic Payments
         new Service(name: 'Payment', version: 68, small: true),
         // Others
@@ -42,7 +43,8 @@ List<Service> services = [
         new Service(name: 'TransferWebhooks', spec: 'BalancePlatformTransferNotification', version: 4),
         new Service(name: 'TransactionWebhooks', spec: 'BalancePlatformTransactionNotification', version: 4),
         new Service(name: 'ManagementWebhooks', spec: 'ManagementNotificationService', version: 3),
-        new Service(name: 'DisputeWebhooks', spec: 'BalancePlatformDisputeNotification', version: 1)
+        new Service(name: 'DisputeWebhooks', spec: 'BalancePlatformDisputeNotification', version: 1),
+        new Service(name: 'NegativeBalanceWarningWebhooks', spec: 'BalancePlatformNegativeBalanceCompensationWarningNotification', version: 1)
 
 ]
 
