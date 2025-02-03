@@ -69,7 +69,7 @@ jobs:
             temp_after_name="${filename}_after.json"
             git show $COMMIT_HASH:$file > $temp_after_name
 
-            docker run -v "$(pwd):/specs" --rm -t tufin/oasdiff diff \
+            docker run -v "$(pwd):/specs" --rm -t tufin/oasdiff:v1.10.27 diff \
               -f markup \
               /specs/$temp_before_name \
               /specs/$temp_after_name \
