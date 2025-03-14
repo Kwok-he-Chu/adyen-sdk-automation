@@ -53,7 +53,7 @@ List<Service> services = [
 
 ext {
     generator = project.name
-    templates = 'templates-v7'
+    templates = 'templates'
     serviceName = ''
     removeTags = true
     setProperty('services', services)

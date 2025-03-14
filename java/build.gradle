@@ -14,7 +14,8 @@ def services = project.ext.services as List<Service>
 tasks.withType(GenerateTask).configureEach {
     def serviceId = project.ext.serviceName.toLowerCase()
     def modelNamespace = "com.adyen.model.${serviceId}"
-
+    
+    templateDir.set("$projectDir/repo/templates-v7")
     library.set("jersey3")
     modelPackage.set(modelNamespace.replace('/', '.'))
     apiPackage.set("com.adyen.service.${serviceId}")
