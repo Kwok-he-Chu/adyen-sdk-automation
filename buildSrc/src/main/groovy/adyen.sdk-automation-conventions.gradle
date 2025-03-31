@@ -213,6 +213,11 @@ project.ext.services.each { Service svc ->
                     if (properties?.containsKey("environment") && properties?.containsKey("data")) {
                         schema.value["x-webhook-root"] = true
                     }
+                    // add 'x-webhook-root' to RelayedAuthenticationRequest model
+                    // bespoke fix as the model doesn't adopt the standard schema
+                    if (schema.key.equals("RelayedAuthenticationRequest")) {
+                        schema.value["x-webhook-root"] = true
+                    }
                 }
             }
 
