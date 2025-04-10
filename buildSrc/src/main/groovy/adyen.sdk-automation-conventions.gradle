@@ -47,7 +47,7 @@ List<Service> services = [
         new Service(name: 'TransactionWebhooks', spec: 'BalancePlatformTransactionNotification', version: 4),
         new Service(name: 'ManagementWebhooks', spec: 'ManagementNotificationService', version: 3),
         new Service(name: 'DisputeWebhooks', spec: 'BalancePlatformDisputeNotification', version: 1),
-        new Service(name: 'NegativeBalanceWarningWebhooks', spec: 'BalancePlatformNegativeBalanceCompensationWarningNotification', version: 1)
+        new Service(name: 'NegativeBalanceWarningWebhooks', spec: 'BalancePlatformNegativeBalanceCompensationWarningNotification', version: 1),
 
 ]
 
@@ -67,6 +67,7 @@ ext {
 // Generate a full client for each service
 services.each { Service svc ->
     def generate = tasks.register("generate$svc.name", GenerateTask) {
+        println "Generating ${svc.name} Client..."
         group 'generate'
         description "Generate a $project.name client for $svc.name."
         dependsOn 'cloneRepo'
@@ -87,7 +88,7 @@ services.each { Service svc ->
                 "configuration": "configuration"
         ])
         additionalProperties.set([
-                'serviceName': project.ext.serviceName,
+                'serviceName': project.ext.serviceName
         ])
         globalProperties.set([
                 'modelDocs' : 'false',
@@ -215,10 +216,13 @@ project.ext.services.each { Service svc ->
                     }
                 }
             }
-
             specFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
         }
     }
-    tasks.named("generate$svc.name") { dependsOn addWebhookExtension }
+
+    tasks.named("generate$svc.name", GenerateTask) {
+        println "Generating ${svc.name} Webhooks..."
+        dependsOn addWebhookExtension
+    }
 }
 

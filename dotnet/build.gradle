@@ -6,29 +6,61 @@ plugins {
 }
 
 project.ext {
-    generator = 'csharp-netcore'
-    templates = 'templates/csharp'
+    generator = 'csharp'
+    templates = 'templates-v7/csharp'
 }
 
 def services = project.ext.services as List<Service>
 
 services.each { Service svc ->
     def serviceName = project.ext.serviceNaming[svc.id] as String
-
     // Generation
     tasks.named("generate${svc.name}", GenerateTask) {
-        apiPackage.set(svc.small ? 'Service' : "Service.${svc.name}")
+        println "Generating ${svc.name}..."
+        apiPackage.set("Service.${svc.name}")
         apiNameSuffix.set('Service')
         modelPackage.set("Model.${svc.name}")
-        reservedWordsMappings.put('Version', 'Version')
+        reservedWordsMappings.putAll([
+                "version": "Version",
+                "Version": "Version",
+                "VarVersion": "Version",
+                "varVersion": "Version",
+                "timeZone": "TimeZone",
+                "environment": "Environment"
+        ])
+//        parameterNameMappoing.putAll([
+//                "gag": "Dsgs"
+//        ])
         additionalProperties.putAll([
+                'targetFramework': 'netstandard2.0',
                 'packageName': 'Adyen',
                 'serviceName': serviceName,
+                'interfacePrefix': 'I',
+                'useDateTimeForDate': 'true',
+                'equatable': 'true',
+                'reserved-words-mappings':  [
+                    'Version': 'VersionVV',
+                    'version': 'Versionvv',
+                    'VarVersion': 'VersionVVar',
+                    'varVersion': 'Versionvvar',
+                    'TimeZone': 'TimeZone',
+                    'Environment': 'Environment',
+                ]
+                //'useOneOfDiscriminatorLookup': 'true'
+                //'prefixReservedWords': 'false',
+                //'nullableReferenceTypes': 'false',
         ])
+
+        templateDir.set("$projectDir/repo/templates-v7/csharp")
+        // Generate webhook handlers for webhooks
+        if (serviceId.endsWith("webhooks")) {
+            configFile.set("$projectDir/config.yaml")
+        }
     }
 
     // Deployment
     def deployModels = tasks.register("deploy${svc.name}Models", Sync) {
+        println "Moving ${svc.name}-Models..."
         group 'deploy'
         description "Deploy $svc.name models into the repo."
         dependsOn "generate$svc.name"
@@ -39,6 +71,7 @@ services.each { Service svc ->
     }
 
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
+        println "Moving ${svc.name}-Services..."
         group 'deploy'
         description "Deploy $svc.name into the repo."
         dependsOn "generate$svc.name"
@@ -48,21 +81,22 @@ services.each { Service svc ->
         into layout.projectDirectory.dir("repo/Adyen/Service/" + serviceName)
     }
 
-    def deploySmallService = tasks.register("deploy${svc.name}SmallService", Copy) {
-        group 'deploy'
-        description "Copy $svc.name into the repo."
-        dependsOn "generate$svc.name"
-        outputs.upToDateWhen { false }
+//    def deploySmallService = tasks.register("deploy${svc.name}SmallService", Copy) {
+//        println "Moving ${svc.name}-SmallServices..."
+//        group 'deploy'
+//        description "Copy $svc.name into the repo."
+//        dependsOn "generate$svc.name"
+//        outputs.upToDateWhen { false }
+//
+//        from layout.buildDirectory.file("services/$svc.id/src/Adyen/Service/DefaultService.cs")
+//        rename 'DefaultService.cs', "${serviceName}Service.cs"
+//        filter {
+//            it.replace('DefaultService', "${serviceName}Service")
+//        }
+//        into layout.projectDirectory.dir("repo/Adyen/Service")
+//    }
 
-        from layout.buildDirectory.file("services/$svc.id/src/Adyen/Service/DefaultService.cs")
-        rename 'DefaultService.cs', "${serviceName}Service.cs"
-        filter {
-            it.replace('DefaultService', "${serviceName}Service")
-        }
-        into layout.projectDirectory.dir("repo/Adyen/Service")
-    }
-
-    tasks.named(svc.id) { dependsOn deployModels, deployServices, deploySmallService }
+    tasks.named(svc.id) { dependsOn deployModels, deployServices }
 }
 
 // Tests
@@ -78,6 +112,7 @@ tasks.named('checkout') {
         assert file("${layout.projectDirectory}/repo/Adyen/Service/Checkout/PaymentsService.cs").exists()
     }
 }
+/* TODO: ACS does not exist.
 tasks.named('acswebhooks') {
     doLast {
         assert file("${layout.projectDirectory}/repo/Adyen/Model/AcsWebhooks/Amount.cs").exists()
@@ -85,3 +120,4 @@ tasks.named('acswebhooks') {
         assert !file("${layout.projectDirectory}/repo/Adyen/Service/AcsWebhooksService.cs").exists()
     }
 }
+*/
