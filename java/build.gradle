@@ -25,6 +25,7 @@ tasks.withType(GenerateTask).configureEach {
             'openApiNullable': 'false',
             'enumPropertyNaming': "legacy",
             'javaxPackage': 'jakarta',
+            "containerDefaultToNull" : "true"
     ])
 
     // for webhooks apply extra config.yaml (to generate WebhookHandler)
