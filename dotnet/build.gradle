@@ -15,6 +15,7 @@ def services = project.ext.services as List<Service>
 services.each { Service svc ->
     def serviceName = project.ext.serviceNaming[svc.id] as String
     // Generation
+
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
         apiPackage.set("Service.${svc.name}")
@@ -23,39 +24,43 @@ services.each { Service svc ->
         reservedWordsMappings.putAll([
                 "version": "Version",
                 "Version": "Version",
-                "VarVersion": "Version",
-                "varVersion": "Version",
-                "timeZone": "TimeZone",
-                "environment": "Environment"
+//                "VarVersion": "Version",
+//                "varVersion": "Version",
+//                "timeZone": "TimeZone",
+//                "environment": "Environment"
         ])
 //        parameterNameMappoing.putAll([
 //                "gag": "Dsgs"
 //        ])
+
         additionalProperties.putAll([
                 'targetFramework': 'netstandard2.0',
+                'library': 'httpclient',
                 'packageName': 'Adyen',
                 'serviceName': serviceName,
                 'interfacePrefix': 'I',
                 'useDateTimeForDate': 'true',
                 'equatable': 'true',
-                'reserved-words-mappings':  [
-                    'Version': 'VersionVV',
-                    'version': 'Versionvv',
-                    'VarVersion': 'VersionVVar',
-                    'varVersion': 'Versionvvar',
-                    'TimeZone': 'TimeZone',
-                    'Environment': 'Environment',
-                ]
+                'useOneOfDiscriminatorLookup': 'true',
+                'openapi-normalizer': 'SET_PRIMITIVE_TYPES_TO_NULLABLE="integer|number"',
+//                'reserved-words-mappings':  [
+//                    'Version': 'VersionVV',
+//                    'version': 'Versionvv',
+//                    'VarVersion': 'VersionVVar',
+//                    'varVersion': 'Versionvvar',
+//                    'TimeZone': 'TimeZone',
+//                    'Environment': 'Environment',
+//                ]
                 //'useOneOfDiscriminatorLookup': 'true'
                 //'prefixReservedWords': 'false',
                 //'nullableReferenceTypes': 'false',
         ])
 
-        templateDir.set("$projectDir/repo/templates-v7/csharp")
-        // Generate webhook handlers for webhooks
-        if (serviceId.endsWith("webhooks")) {
-            configFile.set("$projectDir/config.yaml")
-        }
+//        templateDir.set("$projectDir/repo/templates-og/csharp")
+//        // Generate webhook handlers for webhooks
+//        if (serviceId.endsWith("webhooks")) {
+//            configFile.set("$projectDir/config.yaml")
+//        }
     }
 
     // Deployment
