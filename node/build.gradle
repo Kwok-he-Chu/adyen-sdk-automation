@@ -15,9 +15,6 @@ def services = project.ext.services as List<Service>
 
 // Service renaming
 Map<String, String> serviceNaming = project.ext.serviceNamingCamel
-serviceNaming.putAll([
-        'posterminalmanagement': 'terminalManagement'
-])
 
 services.each { Service svc ->
     String serviceName = serviceNaming[svc.id]
