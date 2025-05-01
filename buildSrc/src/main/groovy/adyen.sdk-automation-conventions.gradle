@@ -12,6 +12,9 @@ repositories {
     mavenCentral()
 }
 
+// list of services to be generated
+// services are APIs with multiple tags: the generation will create a service class/file for each tag
+// smallServices are APIs with a single tag 'General': the generation will create a single class/file
 List<Service> services = [
         // Payments
         new Service(name: 'Checkout', version: 71),
@@ -28,6 +31,7 @@ List<Service> services = [
         new Service(name: 'BalancePlatform', version: 2),
         new Service(name: 'Transfers', spec: 'TransferService', version: 4),
         new Service(name: 'DataProtection', version: 1, small: true),
+        new Service(name: 'SessionAuthentication', version: 1),
         // Classic Payments
         new Service(name: 'Payment', version: 68, small: true),
         // Others
@@ -157,12 +161,13 @@ tasks.register('addPMTable', Copy) {
     into layout.projectDirectory.dir("repo")
 }
 
+// update OpenAPI file of the smallService to rename the tag from 'General' to the name of the API (i.e. Binlookup)
+// this is necessary to generate the service/class file using the name of the API (instead of General)
 project.ext.smallServices.each { Service svc ->
     def ungroup = tasks.register("ungroup${svc.name}") {
         group 'specs'
-        description "Remove tags from ${svc.name}"
+        description "Update tags in ${svc.name}"
         dependsOn ':specs'
-        // The `removeTags` setting only works in isolation (e.g. CI). Locally, specs are shared between all projects.
         onlyIf { project.ext.removeTags }
         doLast {
             def specFile = file("$rootDir/schema/json/${svc.filename}")
@@ -170,13 +175,53 @@ project.ext.smallServices.each { Service svc ->
 
             json["paths"].each { Map.Entry endpoint ->
                 endpoint.value.each { Map.Entry httpMethod ->
-                    httpMethod.value.remove('tags')
+                    if (httpMethod.value.containsKey("tags") && httpMethod.value.tags instanceof List) {
+                        // Rename tag associated with endpoint
+                        httpMethod.value.tags = httpMethod.value.tags.collect { tag ->
+                            tag == "General" ? svc.name : tag
+                        }
+                    }
+                }
+            }
+            specFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
+        }
+    }
+    tasks.named("generate$svc.name") { dependsOn ungroup }
+}
+
+import groovy.json.JsonSlurper
+import groovy.json.JsonOutput
+
+// update OpenAPI file of the webhooks to add a custom extension 'x-webhook-root' to the model that represents the webhook payload
+// this is necessary to generate the WebhookHandler that deserialises the Webhook models
+project.ext.services.each { Service svc ->
+    def addWebhookExtension = tasks.register("addWebhookExtension${svc.name}") {
+        group 'specs'
+        description "Add x-webhook-root extension to ${svc.name}"
+        dependsOn ':specs'
+        doLast {
+            def specFile = file("$rootDir/schema/json/${svc.filename}")
+            def json = new JsonSlurper().parse(specFile)
+
+            // Check if the service name ends with "Webhooks"
+            if (svc.name.endsWith("Webhooks") && json.containsKey("components") && json["components"].containsKey("schemas")) {
+                json["components"]["schemas"].each { Map.Entry schema ->
+                    def properties = schema.value?.properties
+                    // add 'x-webhook-root' to the webhook model (we find 'environment' and 'data' attributes)
+                    if (properties?.containsKey("environment") && properties?.containsKey("data")) {
+                        schema.value["x-webhook-root"] = true
+                    }
+                    // add 'x-webhook-root' to RelayedAuthenticationRequest model
+                    // bespoke fix as the model doesn't adopt the standard schema
+                    if (schema.key.equals("RelayedAuthenticationRequest")) {
+                        schema.value["x-webhook-root"] = true
+                    }
                 }
             }
 
             specFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
         }
     }
-
-    tasks.named("generate$svc.name") { dependsOn ungroup }
+    tasks.named("generate$svc.name") { dependsOn addWebhookExtension }
 }
+
