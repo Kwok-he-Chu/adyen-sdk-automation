@@ -54,8 +54,8 @@ jobs:
       with:
         path: ${{ matrix.project }}/repo
         token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
-        committer: ${{ secrets.ADYEN_AUTOMATION_BOT_EMAIL }}
-        author: ${{ secrets.ADYEN_AUTOMATION_BOT_EMAIL }}
+        committer: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
+        author: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
         branch: sdk-automation/models
         title: ${{ steps.vars.outputs.pr_title }}
         body: ${{ steps.vars.outputs.pr_body }}
