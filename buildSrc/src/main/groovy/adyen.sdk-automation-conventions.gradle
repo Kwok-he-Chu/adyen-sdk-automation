@@ -14,7 +14,7 @@ repositories {
 
 // list of services to be generated
 // services are APIs with multiple tags: the generation will create a service class/file for each tag
-// smallServices are APIs with a single tag 'Gene ral': the generation will create a single class/file
+// smallServices are APIs with a single tag 'General': the generation will create a single class/file
 List<Service> services = [
         // Payments
         new Service(name: 'Checkout', version: 71),
