@@ -14,7 +14,7 @@ repositories {
 
 // list of services to be generated
 // services are APIs with multiple tags: the generation will create a service class/file for each tag
-// smallServices are APIs with a single tag 'General': the generation will create a single class/file
+// smallServices are APIs with a single tag 'Gene ral': the generation will create a single class/file
 List<Service> services = [
         // Payments
         new Service(name: 'Checkout', version: 71),
@@ -211,9 +211,14 @@ project.ext.services.each { Service svc ->
                     if (properties?.containsKey("environment") && properties?.containsKey("data")) {
                         schema.value["x-webhook-root"] = true
                     }
-                    // add 'x-webhook-root' to RelayedAuthenticationRequest model
+                    // add 'x-webhook-root' to RelayedAuthenticationRequest model (missing 'environment' and 'data' attributes)
                     // bespoke fix as the model doesn't adopt the standard schema
                     if (schema.key.equals("RelayedAuthenticationRequest")) {
+                        schema.value["x-webhook-root"] = true
+                    }
+                    // add 'x-webhook-root' to DisputeNotificationRequest model
+                    // bespoke fix as the model doesn't adopt the standard schema (missing 'environment' attribute)
+                    if (schema.key.equals("DisputeNotificationRequest")) {
                         schema.value["x-webhook-root"] = true
                     }
                 }
