@@ -2,13 +2,11 @@ plugins {
     id 'adyen.sdk-automation-conventions'
 }
 
-
 import com.adyen.sdk.Service
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
 project.ext {
-    generator = 'typescript-node'
-    templates = 'templates/typescript'
+    generator = 'typescript'
 }
 
 def services = project.ext.services as List<Service>
@@ -17,38 +15,81 @@ def services = project.ext.services as List<Service>
 Map<String, String> serviceNaming = project.ext.serviceNamingCamel
 
 services.each { Service svc ->
+    // service name starting lowercase
     String serviceName = serviceNaming[svc.id]
+    // service unmodified (starting with uppercase)
+    String originalServiceName = svc.name
 
     // Generation
     tasks.named("generate${svc.name}", GenerateTask) {
-        apiPackage.set(serviceName)
-        configFile.set("$projectDir/config.yaml")
+        templateDir.set("$projectDir/repo/templates-v7/typescript")
+
+        apiNameSuffix.set('Api')
         additionalProperties.putAll([
-                'modelPropertyNaming': 'original',
-                'serviceName'        : serviceName,
+                'modelPropertyNaming'  : 'original',
+                'serviceName'          : serviceName,
+                'originalServiceName'  : originalServiceName,
+                'enumPropertyNaming'   : 'PascalCase',
         ])
+
+        // for webhooks apply extra config.yaml (to generate WebhookHandler)
+        if (serviceId.endsWith("webhooks")) {
+            configFile.set("$projectDir/config.yaml")
+        }
     }
 
-    // Deployment
+    // Copy models
     def deployModels = tasks.register("deploy${svc.name}Models", Sync) {
         group 'deploy'
         description "Deploy $svc.name models into the repo."
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
-        from layout.buildDirectory.dir("services/$svc.id/model")
+        from(layout.buildDirectory.dir("services/$svc.id/models")) {
+            eachFile { fileCopyDetails ->
+                def name = fileCopyDetails.name
+                if (name && name.length() > 0) {
+                    // copy and rename to start with lowercase
+                    fileCopyDetails.name = name[0].toLowerCase() + name.substring(1)
+                }
+            }
+
+            // Rename specific files
+            rename { fileName ->
+                if (fileName == "all.ts") {
+                    return "models.ts"
+                } else if (fileName == "webhookHandler.ts") {
+                    // rename to specific handler (i.e. reportWebhooksHandler.ts)
+                    def handlerName = "${svc.name}Handler.ts"
+                    return handlerName[0].toLowerCase() + handlerName.substring(1)
+                }
+                return fileName
+            }
+
+            includeEmptyDirs = false
+        }
         into layout.projectDirectory.dir("repo/src/typings/" + serviceName)
     }
 
+    // copy services
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
         group 'deploy'
         description "Deploy $svc.name into the repo."
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
-        onlyIf { !svc.small && !svc.webhook }
+        onlyIf { !svc.webhook }
 
-        from layout.buildDirectory.dir("services/$svc.id/${serviceName}")
-        include '*Api.ts'
+        from(layout.buildDirectory.dir("services/$svc.id/apis")) {
+            include '*Api.ts'
+            eachFile { fileCopyDetails ->
+                def name = fileCopyDetails.name
+                if (name && name.length() > 0) {
+                    // copy and rename to start with lowercase
+                    fileCopyDetails.name = name[0].toLowerCase() + name.substring(1)
+                }
+            }
+            includeEmptyDirs = false
+        }
         into layout.projectDirectory.dir("repo/src/services/" + serviceName)
 
         from(layout.buildDirectory.dir("services/$svc.id")) {
@@ -56,19 +97,7 @@ services.each { Service svc ->
         }
     }
 
-    def deploySmallService = tasks.register("deploy${svc.name}SmallService", Copy) {
-        group 'deploy'
-        description "Copy $svc.name into the repo."
-        dependsOn "generate$svc.name"
-        outputs.upToDateWhen { false }
-        onlyIf { svc.small }
-
-        from layout.buildDirectory.file("services/$svc.id/${serviceName}/defaultApiRoot.ts")
-        rename 'defaultApiRoot.ts', "${serviceName}Api.ts"
-        into layout.projectDirectory.dir('repo/src/services')
-    }
-
-    tasks.named(svc.id) { dependsOn deployModels, deployServices, deploySmallService }
+    tasks.named(svc.id) { dependsOn deployModels, deployServices }
 }
 
 // Tests
@@ -80,6 +109,8 @@ tasks.named('binlookup') {
 }
 tasks.named('checkout') {
     doLast {
+        assert file("${layout.projectDirectory}/repo/src/typings/checkout/models.ts").exists()
+        assert file("${layout.projectDirectory}/repo/src/typings/checkout/objectSerializer.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/typings/checkout/amount.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/services/checkout/paymentsApi.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/services/checkout/index.ts").exists()
@@ -87,14 +118,17 @@ tasks.named('checkout') {
 }
 tasks.named('balanceplatform') {
     doLast {
+        assert file("${layout.projectDirectory}/repo/src/typings/balancePlatform/models.ts").exists()
+        assert file("${layout.projectDirectory}/repo/src/typings/balancePlatform/objectSerializer.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/typings/balancePlatform/amount.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/services/balancePlatform/accountHoldersApi.ts").exists()
-        assert !file("${layout.projectDirectory}/repo/src/services/balanceplatform/accountHoldersApi.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/services/balancePlatform/index.ts").exists()
     }
 }
 tasks.named('acswebhooks') {
     doLast {
+        assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/acsWebhooksHandler.ts").exists()
+        assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/objectSerializer.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/amount.ts").exists()
         assert !file("${layout.projectDirectory}/repo/src/services/acsWebhooks").exists()
         assert !file("${layout.projectDirectory}/repo/src/services/acsWebhooksApi.ts").exists()
