@@ -1,3 +1,9 @@
+/**
+ * This Gradle build script is designed to automate the generation of the TypeScript code from the OpenAPI specifications,
+ * It orchestrates the entire process, from code generation to copying the generated files in the correct source directories
+ * (services, typings).
+ * It includes verification steps to confirm the outcome of the generation.
+ */
 plugins {
     id 'adyen.sdk-automation-conventions'
 }
@@ -38,7 +44,14 @@ services.each { Service svc ->
         }
     }
 
-    // Copy models
+    /**
+     * Copy models task
+     * - copy generated models from build (generated code) to the library typings folder
+     * - rename to start with lowercase (to follow naming conventions)
+     * - rename specific files:
+     *      - all.ts must be renamed to models.ts
+     *      - webhookHandler.ts must be renamed to specific handler (i.e. reportWebhooksHandler.ts)
+     */
     def deployModels = tasks.register("deploy${svc.name}Models", Sync) {
         group 'deploy'
         description "Deploy $svc.name models into the repo."
@@ -71,7 +84,13 @@ services.each { Service svc ->
         into layout.projectDirectory.dir("repo/src/typings/" + serviceName)
     }
 
-    // copy services
+
+    /**
+     * Copy services task
+     * - copy generated models from build (generated code) to the library services folder
+     * - rename to start with lowercase (to follow naming conventions)
+     *
+    */
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
         group 'deploy'
         description "Deploy $svc.name into the repo."
@@ -91,7 +110,7 @@ services.each { Service svc ->
             includeEmptyDirs = false
         }
         into layout.projectDirectory.dir("repo/src/services/" + serviceName)
-
+        // copy index.ts (export service classes)
         from(layout.buildDirectory.dir("services/$svc.id")) {
             include 'index.ts'
         }
@@ -100,13 +119,14 @@ services.each { Service svc ->
     tasks.named(svc.id) { dependsOn deployModels, deployServices }
 }
 
-// Tests
+// Test binlookup
 tasks.named('binlookup') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/typings/binLookup/amount.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/services/binLookupApi.ts").exists()
     }
 }
+// Test checkout
 tasks.named('checkout') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/typings/checkout/models.ts").exists()
@@ -116,6 +136,7 @@ tasks.named('checkout') {
         assert file("${layout.projectDirectory}/repo/src/services/checkout/index.ts").exists()
     }
 }
+// Test balanceplatform
 tasks.named('balanceplatform') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/typings/balancePlatform/models.ts").exists()
@@ -125,12 +146,17 @@ tasks.named('balanceplatform') {
         assert file("${layout.projectDirectory}/repo/src/services/balancePlatform/index.ts").exists()
     }
 }
+// Test acswebhooks
 tasks.named('acswebhooks') {
     doLast {
-        assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/acsWebhooksHandler.ts").exists()
-        assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/objectSerializer.ts").exists()
         assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/amount.ts").exists()
+        // verify Webhook Handler is created
+        assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/acsWebhooksHandler.ts").exists()
+        // verify objectSerializer is created
+        assert file("${layout.projectDirectory}/repo/src/typings/acsWebhooks/objectSerializer.ts").exists()
+        // verify no service package is created for a webhook
         assert !file("${layout.projectDirectory}/repo/src/services/acsWebhooks").exists()
+        // verify no API class is created for a webhook
         assert !file("${layout.projectDirectory}/repo/src/services/acsWebhooksApi.ts").exists()
     }
 }
