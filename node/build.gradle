@@ -90,13 +90,14 @@ services.each { Service svc ->
      * - copy generated models from build (generated code) to the library services folder
      * - rename to start with lowercase (to follow naming conventions)
      *
+     * Note: webhook specs (i.e. ConfigurationWebhooks, etc.. ) are skipped because Webhooks generation must only creates models
     */
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
         group 'deploy'
         description "Deploy $svc.name into the repo."
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
-        onlyIf { !svc.webhook }
+        onlyIf { !svc.webhook } // skip webhooks (this task is for generating service classes only)
 
         from(layout.buildDirectory.dir("services/$svc.id/apis")) {
             include '*Api.ts'
