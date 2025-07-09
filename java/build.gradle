@@ -127,6 +127,7 @@ tasks.named('binlookup') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/binlookup/Amount.java").exists()
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/BinLookupApi.java").exists()
+        // verify DefaultApi class no longer exists (it has been renamed to BinLookupApi)
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/binlookup/DefaultApi.java").exists()
     }
 }
