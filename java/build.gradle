@@ -141,8 +141,11 @@ tasks.named('checkout') {
 tasks.named('acswebhooks') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/acswebhooks/Amount.java").exists()
+        // verify no service package is created for a webhook
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/acswebhooks").exists()
+        // verify no API class is created for a webhook
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/AcsWebhooksApi.java").exists()
+        // verify Webhook Handler is created
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/acswebhooks/AcsWebhooksHandler.java").exists()
     }
 }
