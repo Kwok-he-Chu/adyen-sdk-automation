@@ -1,7 +1,7 @@
 package com.adyen.sdk
 
 class Service {
-    String name, spec
+    String name, spec, tag
     int version
     boolean small
 
@@ -12,4 +12,5 @@ class Service {
     String getFilename() { "${getSpec()}-v${version}.json" }
 
     boolean isWebhook() { name.endsWith('Webhooks') }
+
 }
