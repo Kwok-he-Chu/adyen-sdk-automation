@@ -7,7 +7,7 @@ plugins {
 
 project.ext {
     generator = 'csharp'
-    templates = 'templates-v7/csharp'
+    templates = 'templates-v7/csharp/libraries/generichost'
 }
 
 def services = project.ext.services as List<Service>
@@ -21,28 +21,54 @@ services.each { Service svc ->
         apiPackage.set("Service.${svc.name}")
         apiNameSuffix.set('Service')
         modelPackage.set("Model.${svc.name}")
-        reservedWordsMappings.putAll([
+/*        reservedWordsMappings.putAll([
                 "version": "Version",
-                "Version": "Version",
+//                "Version": "Version",
 //                "VarVersion": "Version",
 //                "varVersion": "Version",
 //                "timeZone": "TimeZone",
 //                "environment": "Environment"
-        ])
+        ])*/
 //        parameterNameMappoing.putAll([
 //                "gag": "Dsgs"
 //        ])
 
         additionalProperties.putAll([
+                // Target framework version
                 'targetFramework': 'netstandard2.0',
-                'library': 'httpclient',
+
+                // HTTP library template sub-folder/template to use:
+                'library': 'generichost',
+
+                // Your C# package name (convention: Camel.Case).
                 'packageName': 'Adyen',
-                'serviceName': serviceName,
-                'interfacePrefix': 'I',
-                'useDateTimeForDate': 'true',
+
+                // Api -suffix
+                'apiName': 'Api',
+
+                // Make API response's headers case-insensitive
+                'caseInsensitiveResponseHeaders': 'false',
+
+                // Override Equals and GetHashCode methods
                 'equatable': 'true',
+
+                'serviceName': serviceName,
+
+                // Use nullable annotations in the project.
+                // Only supported on C# 8 / ASP.NET Core 3.1 or newer.
+                // Starting in .NET 6.0 the default is true.
+                'nullableReferenceTypes': 'false',
+
+                // Your prefix for interfaces
+                'interfacePrefix': 'I',
+
+                // Use DateTime to model date properties even if DateOnly supported. (.NET 6.0+ only)
+                'useDateTimeForDate': 'true',
+
+                // Use the discriminator's mapping in oneOf to speed up the model lookup.
+                // IMPORTANT NOTE: Validation (e.g. one and only one match in oneOf's schemas) will be skipped.
                 'useOneOfDiscriminatorLookup': 'true',
-                'openapi-normalizer': 'SET_PRIMITIVE_TYPES_TO_NULLABLE="integer|number"',
+
 //                'reserved-words-mappings':  [
 //                    'Version': 'VersionVV',
 //                    'version': 'Versionvv',
@@ -51,12 +77,9 @@ services.each { Service svc ->
 //                    'TimeZone': 'TimeZone',
 //                    'Environment': 'Environment',
 //                ]
-                //'useOneOfDiscriminatorLookup': 'true'
-                //'prefixReservedWords': 'false',
-                //'nullableReferenceTypes': 'false',
         ])
 
-//        templateDir.set("$projectDir/repo/templates-og/csharp")
+//        templateDir.set("$projectDir/repo/templates-v7/libraries/csharp")
 //        // Generate webhook handlers for webhooks
 //        if (serviceId.endsWith("webhooks")) {
 //            configFile.set("$projectDir/config.yaml")
