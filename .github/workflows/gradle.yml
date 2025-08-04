@@ -62,9 +62,15 @@ jobs:
         body: ${{ steps.vars.outputs.pr_body }}
         commit-message: |
           ${{ contains(fromJSON('["go", "php", "node"]'), matrix.project) && '[reformat]' }}[adyen-sdk-automation] automated change
-  # setup PHP library
-  setupPhp:
+  # generate PHP library
+  generatePhp:
     runs-on: ubuntu-latest
+    # generate code as defined in the matrix
+    # each iteration generates a group of services and creates a PR
+    strategy:
+      matrix:
+        tag: [PaymentsAPIs, ManagementAPIs, PlatformsAPIs, Webhooks]
+
     steps:
       - uses: actions/checkout@v4
 
@@ -75,20 +81,6 @@ jobs:
           repository: Adyen/adyen-php-api-library
           path: php/repo
 
-      - name: Set workspace output
-        id: set-output
-        run: echo "workspace=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
-  # generate PHP library
-  generatePhp:
-    needs: setupPhp
-    runs-on: ubuntu-latest
-    # generate code as defined in the matrix
-    # each iteration generates a group of services and creates a PR
-    strategy:
-      matrix:
-        tag: [PaymentsAPIs, ManagementAPIs, PlatformsAPIs, Webhooks]
-
-    steps:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
