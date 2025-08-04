@@ -17,10 +17,11 @@ concurrency:
   group: ci-sdk-automation
 
 jobs:
+  # generate code for the libraries defined in the matrix
   generate:
     strategy:
       matrix:
-        project: [ go, php, java, node, dotnet, python, ruby ]
+        project: [ go, java, node, dotnet, python, ruby ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -61,3 +62,62 @@ jobs:
         body: ${{ steps.vars.outputs.pr_body }}
         commit-message: |
           ${{ contains(fromJSON('["go", "php", "node"]'), matrix.project) && '[reformat]' }}[adyen-sdk-automation] automated change
+  # setup PHP library
+  setupPhp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone PHP repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
+          repository: Adyen/adyen-php-api-library
+          path: php/repo
+
+      - name: Set workspace output
+        id: set-output
+        run: echo "workspace=$GITHUB_WORKSPACE" >> $GITHUB_OUTPUT
+  # generate PHP library
+  generatePhp:
+    needs: setupPhp
+    runs-on: ubuntu-latest
+    # generate code as defined in the matrix
+    # each iteration generates a group of services and creates a PR
+    strategy:
+      matrix:
+        tag: [PaymentsAPIs, ManagementAPIs, PlatformsAPIs, Webhooks]
+
+    steps:
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Generate code for PHP ${{ matrix.tag }}
+        run: ./gradlew php:${{ matrix.tag }}
+
+      - name: Set PR variables
+        id: vars
+        run: |
+          cd schema
+          echo pr_title="[${{ matrix.tag }}] Code generation: update services and models" >> "$GITHUB_OUTPUT"
+          echo pr_body="OpenAPI spec files or templates have been modified on $(date +%d-%m-%Y) \
+            by [commit](https://github.com/Adyen/adyen-openapi/commit/$(git rev-parse HEAD)). " >> "$GITHUB_OUTPUT"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: php/repo
+          token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
+          committer: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
+          author: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
+          branch: sdk-automation/${{ matrix.tag }}
+          title: ${{ steps.vars.outputs.pr_title }}
+          body: ${{ steps.vars.outputs.pr_body }}
+          commit-message: |
+            # include [reformat] for PHP
+            [reformat][adyen-sdk-automation] automated changes
