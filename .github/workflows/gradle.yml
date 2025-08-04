@@ -119,4 +119,5 @@ jobs:
           title: ${{ steps.vars.outputs.pr_title }}
           body: ${{ steps.vars.outputs.pr_body }}
           commit-message: |
-            ${{ contains(fromJSON('["go", "php", "node"]'), 'php') && '[reformat]' }}[adyen-sdk-automation] automated change
+            # include [reformat] for PHP
+            [reformat][adyen-sdk-automation] automated changes
