@@ -107,9 +107,10 @@ jobs:
           token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
           committer: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
           author: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
+          # name branch accordingly
           branch: sdk-automation/${{ matrix.tag }}
           title: ${{ steps.vars.outputs.pr_title }}
           body: ${{ steps.vars.outputs.pr_body }}
+          # include [reformat] because of PHP code format
           commit-message: |
-            # include [reformat] for PHP
             [reformat][adyen-sdk-automation] automated changes
