@@ -100,7 +100,20 @@ jobs:
           echo pr_title="[${{ matrix.tag }}] Code generation: update services and models" >> "$GITHUB_OUTPUT"
           echo pr_body="OpenAPI spec files or templates have been modified on $(date +%d-%m-%Y) \
             by [commit](https://github.com/Adyen/adyen-openapi/commit/$(git rev-parse HEAD)). " >> "$GITHUB_OUTPUT"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          cd php/repo
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # create PR is there are changes    
       - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           path: php/repo
