@@ -79,8 +79,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
-          repository: Adyen/adyen-{{ matrix.project }}-api-library
-          path: {{ matrix.project }}/repo
+          repository: Adyen/adyen-${{ matrix.project }}-api-library
+          path: ${{ matrix.project }}/repo
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -91,8 +91,8 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: {{ matrix.project }}: generate code for ${{ matrix.tag }}
-        run: ./gradlew {{ matrix.project }}:${{ matrix.tag }}
+      - name: ${{ matrix.project }}: generate code for ${{ matrix.tag }}
+        run: ./gradlew ${{ matrix.project }}:${{ matrix.tag }}
 
       - name: Set PR variables
         id: vars
@@ -105,7 +105,7 @@ jobs:
       - name: Check for changes
         id: changes
         run: |
-          cd {{ matrix.project }}/repo
+          cd ${{ matrix.project }}/repo
           if git diff --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -117,7 +117,7 @@ jobs:
         if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          path: {{ matrix.project }}/repo
+          path: ${{ matrix.project }}/repo
           token: ${{ secrets.ADYEN_AUTOMATION_BOT_ACCESS_TOKEN }}
           committer: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
           author: ${{ secrets.ADYEN_AUTOMATION_BOT_TEST_EMAIL }}
