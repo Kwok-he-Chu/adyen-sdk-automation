@@ -91,7 +91,7 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
 
-      - name: ${{ matrix.project }}: generate code for ${{ matrix.tag }}
+      - name: ${{ matrix.project }} generate code for ${{ matrix.tag }}
         run: ./gradlew ${{ matrix.project }}:${{ matrix.tag }}
 
       - name: Set PR variables
