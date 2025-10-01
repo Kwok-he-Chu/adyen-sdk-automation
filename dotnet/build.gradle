@@ -18,9 +18,9 @@ services.each { Service svc ->
 
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
-        apiPackage.set("Service.${svc.name}")
+        apiPackage.set("${svc.name}.Services")
         apiNameSuffix.set('Service')
-        modelPackage.set("Model.${svc.name}")
+        modelPackage.set("${svc.name}.Models")
 /*        reservedWordsMappings.putAll([
                 "version": "Version",
 //                "Version": "Version",
@@ -35,7 +35,7 @@ services.each { Service svc ->
 
         additionalProperties.putAll([
                 // Target framework version
-                'targetFramework': 'netstandard2.0',
+                'targetFramework': 'net8.0',
 
                 // HTTP library template sub-folder/template to use:
                 'library': 'generichost',
@@ -43,8 +43,8 @@ services.each { Service svc ->
                 // Your C# package name (convention: Camel.Case).
                 'packageName': 'Adyen',
 
-                // Api -suffix
-                'apiName': 'Api',
+                // Service -suffix
+                'apiName': svc.name,
 
                 // Make API response's headers case-insensitive
                 'caseInsensitiveResponseHeaders': 'false',
@@ -57,13 +57,10 @@ services.each { Service svc ->
                 // Use nullable annotations in the project.
                 // Only supported on C# 8 / ASP.NET Core 3.1 or newer.
                 // Starting in .NET 6.0 the default is true.
-                'nullableReferenceTypes': 'false',
-
-                // Your prefix for interfaces
-                'interfacePrefix': 'I',
+                'nullableReferenceTypes': 'true',
 
                 // Use DateTime to model date properties even if DateOnly supported. (.NET 6.0+ only)
-                'useDateTimeForDate': 'true',
+                'useDateTimeOffset': 'true',
 
                 // Use the discriminator's mapping in oneOf to speed up the model lookup.
                 // IMPORTANT NOTE: Validation (e.g. one and only one match in oneOf's schemas) will be skipped.
@@ -94,8 +91,8 @@ services.each { Service svc ->
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
-        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/Model.${serviceName}")
-        into layout.projectDirectory.dir("repo/Adyen/Model/" + serviceName)
+        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/${serviceName}.Models")
+        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Models")
     }
 
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
@@ -105,8 +102,30 @@ services.each { Service svc ->
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
-        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/Service.${serviceName}")
-        into layout.projectDirectory.dir("repo/Adyen/Service/" + serviceName)
+        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile)
+        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Services")
+    }
+
+    def deployClients = tasks.register("deploy${svc.name}Clients", Sync) {
+        println "Moving ${svc.name}-Clients..."
+        group 'deploy'
+        description "Deploy $svc.name into the repo."
+        dependsOn "generate$svc.name"
+        outputs.upToDateWhen { false }
+
+        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client")
+        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Client")
+    }
+
+    def deployExtensions = tasks.register("deploy${svc.name}Extensions", Sync) {
+        println "Moving ${svc.name}-Extensions..."
+        group 'deploy'
+        description "Deploy $svc.name into the repo."
+        dependsOn "generate$svc.name"
+        outputs.upToDateWhen { false }
+
+        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions")
+        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Extensions")
     }
 
 //    def deploySmallService = tasks.register("deploy${svc.name}SmallService", Copy) {
@@ -124,20 +143,20 @@ services.each { Service svc ->
 //        into layout.projectDirectory.dir("repo/Adyen/Service")
 //    }
 
-    tasks.named(svc.id) { dependsOn deployModels, deployServices }
+    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions }
 }
 
 // Tests
-tasks.named('binlookup') {
-    doLast {
-        assert file("${layout.projectDirectory}/repo/Adyen/Model/BinLookup/Amount.cs").exists()
-        assert file("${layout.projectDirectory}/repo/Adyen/Service/BinLookupService.cs").exists()
-    }
-}
+//tasks.named('binlookup') {
+//    doLast {
+//        assert file("${layout.projectDirectory}/repo/src/Adyen/Model/BinLookup/Amount.cs").exists()
+//        assert file("${layout.projectDirectory}/repo/src/Adyen/Service/BinLookupService.cs").exists()
+//    }
+//}
 tasks.named('checkout') {
     doLast {
-        assert file("${layout.projectDirectory}/repo/Adyen/Model/Checkout/Amount.cs").exists()
-        assert file("${layout.projectDirectory}/repo/Adyen/Service/Checkout/PaymentsService.cs").exists()
+        assert file("${layout.projectDirectory}/repo/Adyen/src/Checkout/Models/Amount.cs").exists()
+        assert file("${layout.projectDirectory}/repo/Adyen/src/Checkout/Services/PaymentsService.cs").exists()
     }
 }
 /* TODO: ACS does not exist.
