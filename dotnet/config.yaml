@@ -1,5 +1,0 @@
-files:
-  webhook_handler.mustache:
-    folder: Adyen/Model
-    destinationFilename: WebhookHandler.cs
-    templateType: SupportingFiles

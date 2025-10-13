@@ -14,8 +14,8 @@ def services = project.ext.services as List<Service>
 
 services.each { Service svc ->
     def serviceName = project.ext.serviceNaming[svc.id] as String
-    // Generation
 
+    // Generation
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
         apiPackage.set("${svc.name}.Services")
@@ -39,7 +39,7 @@ services.each { Service svc ->
 
                 'library': 'generichost',
 
-                // Your C# package name (convention: Camel.Case).
+                // Your C# package name (convention: CamelCase).
                 'packageName': 'Adyen',
 
                 // The name of your core-folder.
@@ -54,10 +54,10 @@ services.each { Service svc ->
                 // Override Equals and GetHashCode methods
                 'equatable': 'true',
 
+                // Name of the API service.
                 'serviceName': serviceName,
 
-                // Use nullable annotations in the project.
-                // Only supported on C# 8 / ASP.NET Core 3.1 or newer.
+                // Use nullable annotations in the project, only supported on C# 8 & ASP.NET Core 3.1+
                 // Starting in .NET 6.0 the default is true.
                 'nullableReferenceTypes': 'true',
 
@@ -78,20 +78,14 @@ services.each { Service svc ->
 //                ]
                 //'SET_PRIMITIVE_TYPES_TO_NULLABLE': 'true',
         ])
-
-//        templateDir.set("$projectDir/repo/templates-v7/libraries/csharp")
-//        // Generate webhook handlers for webhooks
-//        if (serviceId.endsWith("webhooks")) {
-//            configFile.set("$projectDir/config.yaml")
-//        }
     }
 
     // Deployment
     def deployModels = tasks.register("deploy${svc.name}Models", Sync) {
         println "Moving ${svc.name}-Models..."
-        group 'deploy'
-        description "Deploy $svc.name models into the repo."
-        dependsOn "generate$svc.name"
+        group "deploy"
+        description "Move ${svc.name} models into the repo."
+        dependsOn "generate${svc.name}"
         outputs.upToDateWhen { false }
 
         from layout.buildDirectory.dir("services/$svc.id/src/Adyen/${serviceName}.Models")
@@ -100,9 +94,9 @@ services.each { Service svc ->
 
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
         println "Moving ${svc.name}-Services..."
-        group 'deploy'
-        description "Deploy $svc.name into the repo."
-        dependsOn "generate$svc.name"
+        group "deploy"
+        description "Move ${svc.name} into the repo."
+        dependsOn "deploy${svc.name}Models"
         outputs.upToDateWhen { false }
 
         from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
@@ -113,9 +107,9 @@ services.each { Service svc ->
 
     def deployClients = tasks.register("deploy${svc.name}Clients", Sync) {
         println "Moving ${svc.name}-Clients..."
-        group 'deploy'
-        description "Deploy $svc.name into the repo."
-        dependsOn "generate$svc.name"
+        group "deploy"
+        description "Move ${svc.name} into the repo."
+        dependsOn "deploy${svc.name}Services"
         outputs.upToDateWhen { false }
 
         from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
@@ -126,9 +120,9 @@ services.each { Service svc ->
 
     def deployExtensions = tasks.register("deploy${svc.name}Extensions", Sync) {
         println "Moving ${svc.name}-Extensions..."
-        group 'deploy'
-        description "Deploy $svc.name into the repo."
-        dependsOn "generate$svc.name"
+        group "deploy"
+        description "Move ${svc.name} into the repo."
+        dependsOn "deploy${svc.name}Clients"
         outputs.upToDateWhen { false }
 
         from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
@@ -138,21 +132,6 @@ services.each { Service svc ->
         }
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
     }
-
-//    def deploySmallService = tasks.register("deploy${svc.name}SmallService", Copy) {
-//        println "Moving ${svc.name}-SmallServices..."
-//        group 'deploy'
-//        description "Copy $svc.name into the repo."
-//        dependsOn "generate$svc.name"
-//        outputs.upToDateWhen { false }
-//
-//        from layout.buildDirectory.file("services/$svc.id/src/Adyen/Service/DefaultService.cs")
-//        rename 'DefaultService.cs', "${serviceName}Service.cs"
-//        filter {
-//            it.replace('DefaultService', "${serviceName}Service")
-//        }
-//        into layout.projectDirectory.dir("repo/Adyen/Service")
-//    }
 
     tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions }
 }
