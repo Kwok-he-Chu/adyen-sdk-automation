@@ -19,7 +19,7 @@ services.each { Service svc ->
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
         apiPackage.set("${svc.name}.Services")
-        apiNameSuffix.set('Service')
+        apiNameSuffix.set("Service")
         modelPackage.set("${svc.name}.Models")
 /*        reservedWordsMappings.putAll([
                 "version": "Version",
@@ -37,11 +37,13 @@ services.each { Service svc ->
                 // Target framework version
                 'targetFramework': 'net8.0',
 
-                // HTTP library template sub-folder/template to use:
                 'library': 'generichost',
 
                 // Your C# package name (convention: Camel.Case).
                 'packageName': 'Adyen',
+
+                // The name of your core-folder.
+                'corePackageName': 'Core',
 
                 // Service -suffix
                 'apiName': svc.name,
@@ -74,6 +76,7 @@ services.each { Service svc ->
 //                    'TimeZone': 'TimeZone',
 //                    'Environment': 'Environment',
 //                ]
+                //'SET_PRIMITIVE_TYPES_TO_NULLABLE': 'true',
         ])
 
 //        templateDir.set("$projectDir/repo/templates-v7/libraries/csharp")
@@ -92,7 +95,7 @@ services.each { Service svc ->
         outputs.upToDateWhen { false }
 
         from layout.buildDirectory.dir("services/$svc.id/src/Adyen/${serviceName}.Models")
-        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Models")
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
     }
 
     def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
@@ -102,8 +105,10 @@ services.each { Service svc ->
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
-        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile)
-        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Services")
+        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
+            exclude 'IApi.cs'
+        }
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
     }
 
     def deployClients = tasks.register("deploy${svc.name}Clients", Sync) {
@@ -113,8 +118,10 @@ services.each { Service svc ->
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
-        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client")
-        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Client")
+        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
+            include 'HostConfiguration.cs', 'ClientUtils.cs'
+        }
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Client")
     }
 
     def deployExtensions = tasks.register("deploy${svc.name}Extensions", Sync) {
@@ -124,8 +131,12 @@ services.each { Service svc ->
         dependsOn "generate$svc.name"
         outputs.upToDateWhen { false }
 
-        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions")
-        into layout.projectDirectory.dir("repo/Adyen/src/" + serviceName + "/Extensions")
+        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
+            include 'IHostBuilderExtensions.cs', 'IServiceCollectionExtensions.cs'
+            rename('IHostBuilderExtensions.cs', 'HostBuilderExtensions.cs')
+            rename('IServiceCollectionExtensions.cs', 'ServiceCollectionExtensions.cs')
+        }
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
     }
 
 //    def deploySmallService = tasks.register("deploy${svc.name}SmallService", Copy) {
@@ -155,8 +166,8 @@ services.each { Service svc ->
 //}
 tasks.named('checkout') {
     doLast {
-        assert file("${layout.projectDirectory}/repo/Adyen/src/Checkout/Models/Amount.cs").exists()
-        assert file("${layout.projectDirectory}/repo/Adyen/src/Checkout/Services/PaymentsService.cs").exists()
+        assert file("${layout.projectDirectory}/repo/Adyen/Checkout/Models/Amount.cs").exists()
+        assert file("${layout.projectDirectory}/repo/Adyen/Checkout/Services/PaymentsService.cs").exists()
     }
 }
 /* TODO: ACS does not exist.
