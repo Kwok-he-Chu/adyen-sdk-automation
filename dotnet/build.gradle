@@ -65,7 +65,7 @@ services.each { Service svc ->
                 'caseInsensitiveResponseHeaders': 'false',
 
                 // Override Equals and GetHashCode methods
-                'equatable': 'true',
+                'equatable': 'false',
 
                 // Name of the API service.
                 'serviceName': serviceName,
