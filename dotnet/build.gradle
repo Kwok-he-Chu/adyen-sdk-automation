@@ -18,21 +18,20 @@ services.each { Service svc ->
     // Generation
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
-        apiPackage.set("${svc.name}.Services")
-        apiNameSuffix.set("Service")
-        modelPackage.set("${svc.name}.Models")
-/*        reservedWordsMappings.putAll([
-                "version": "Version",
-//                "Version": "Version",
-//                "VarVersion": "Version",
-//                "varVersion": "Version",
-//                "timeZone": "TimeZone",
-//                "environment": "Environment"
-        ])*/
-//        parameterNameMappoing.putAll([
-//                "gag": "Dsgs"
-//        ])
 
+        // Sets apiPackage name.
+        apiPackage.set("${svc.name}.Services")
+
+        // Sets suffix of api.
+        apiNameSuffix.set("Service")
+
+        // Sets modelPackageName.
+        modelPackage.set("${svc.name}.Models")
+
+        // Use typeMappings, Set<> is not a valid object in .NET.
+        typeMappings.set(['set': 'List'])
+
+        // Use additionalProperties
         additionalProperties.putAll([
                 // Target framework version.
                 'targetFramework': 'net8.0',
@@ -169,10 +168,7 @@ services.each { Service svc ->
         into layout.projectDirectory.dir("repo/docs/" + serviceName)
     }
 
-    // TODO
-    if (!serviceName.startsWith("SessionAuthentication")) {
-        tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation }
-    }
+    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation }
 
     // Deployment
     def deployWebhookModels = tasks.register("generate${svc.name}WebhookModels", Sync) {
