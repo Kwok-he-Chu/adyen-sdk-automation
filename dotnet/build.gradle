@@ -29,7 +29,7 @@ services.each { Service svc ->
         modelPackage.set("${svc.name}.Models")
 
         // Use typeMappings, Set<> is not a valid object in .NET.
-        typeMappings.set(['set': 'List'])
+        typeMappings.set(['set': 'HashSet'])
 
         // Use additionalProperties
         additionalProperties.putAll([
