@@ -34,9 +34,10 @@ services.each { Service svc ->
 //        ])
 
         additionalProperties.putAll([
-                // Target framework version
+                // Target framework version.
                 'targetFramework': 'net8.0',
 
+                // Use library: generichost.
                 'library': 'generichost',
 
                 // Your C# package name (convention: CamelCase).
@@ -68,23 +69,116 @@ services.each { Service svc ->
                 // IMPORTANT NOTE: Validation (e.g. one and only one match in oneOf's schemas) will be skipped.
                 'useOneOfDiscriminatorLookup': 'true',
 
-//                'reserved-words-mappings':  [
-//                    'Version': 'VersionVV',
-//                    'version': 'Versionvv',
-//                    'VarVersion': 'VersionVVar',
-//                    'varVersion': 'Versionvvar',
-//                    'TimeZone': 'TimeZone',
-//                    'Environment': 'Environment',
-//                ]
-                //'SET_PRIMITIVE_TYPES_TO_NULLABLE': 'true',
+                // Source generation is a feature that lets the compiler generate optimized code at build time, making JSON (de)serialization faster.
+                // This flag uses the SourceGenerationContext.mustache template to:
+                // 1. `WriteIndented = true` -> Prettify, by indenting the JSON
+                // 2. `GenerationMode = JsonSourceGenerationMode.Metadata | JsonSourceGenerationMode.Serialization`
+                //     This sets the generation mode using a bitwise OR between two flags:
+                //     - Metadata: Generates metadata needed to support reflection-free serialization.
+                //     - Serialization: Generates methods for serializing objects to JSON.
+                //'useSourceGeneration': 'false',
         ])
     }
 
     // Deployment
-    def deployModels = tasks.register("deploy${svc.name}Models", Sync) {
+    def deployModels = tasks.register("generate${svc.name}Models", Sync) {
         println "Moving ${svc.name}-Models..."
         group "deploy"
         description "Move ${svc.name} models into the repo."
+        dependsOn "generate${svc.name}"
+        outputs.upToDateWhen { false }
+
+        // Delete existing models.
+        doFirst {
+            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
+        }
+
+        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/${serviceName}.Models")
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
+    }
+
+    def deployServices = tasks.register("generate${svc.name}Services", Sync) {
+        println "Moving ${svc.name}-Services..."
+        group "deploy"
+        description "Move ${svc.name} into the repo."
+        dependsOn "generate${svc.name}Models"
+        outputs.upToDateWhen { false }
+
+        // Delete existing services.
+        doFirst {
+            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
+        }
+
+        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
+            exclude 'IApi.cs'
+        }
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
+    }
+
+    def deployClients = tasks.register("generate${svc.name}Clients", Sync) {
+        println "Moving ${svc.name}-Clients..."
+        group "deploy"
+        description "Move ${svc.name} into the repo."
+        dependsOn "generate${svc.name}Services"
+        outputs.upToDateWhen { false }
+
+        // Delete existing clients.
+        doFirst {
+            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Clients")
+        }
+
+        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
+            include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs'
+        }
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Client")
+    }
+
+    def deployExtensions = tasks.register("generate${svc.name}Extensions", Sync) {
+        println "Moving ${svc.name}-Extensions..."
+        group "generate"
+        description "Move ${svc.name} into the repo."
+        dependsOn "generate${svc.name}Clients"
+        outputs.upToDateWhen { false }
+
+        // Delete existing extensions.
+        doFirst {
+            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
+        }
+
+        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
+            include 'IHostBuilderExtensions.cs', 'IServiceCollectionExtensions.cs'
+            rename('IHostBuilderExtensions.cs', 'HostBuilderExtensions.cs')
+            rename('IServiceCollectionExtensions.cs', 'ServiceCollectionExtensions.cs')
+        }
+        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
+    }
+
+    def deployDocumentation = tasks.register("generate${svc.name}Documentation", Sync) {
+        println "Moving ${svc.name}-Documentation..."
+        group "generate"
+        description "Move ${svc.name} into the repo."
+        dependsOn "generate${svc.name}Services"
+        outputs.upToDateWhen { false }
+
+        // Delete existing docs.
+        doFirst {
+            delete layout.projectDirectory.dir("repo/docs/" + serviceName)
+        }
+
+        from (layout.buildDirectory.dir("services/$svc.id/docs/apis").get().asFile)
+        into layout.projectDirectory.dir("repo/docs/" + serviceName)
+    }
+
+    // TODO
+    if (!serviceName.startsWith("SessionAuthentication")) {
+        tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation }
+    }
+
+    // Deployment
+    def deployWebhookModels = tasks.register("generate${svc.name}WebhookModels", Sync) {
+        println "Moving ${svc.name}-WebhookModels..."
+        group "deploy"
+        description "Move ${svc.name} webhook models into the repo."
         dependsOn "generate${svc.name}"
         outputs.upToDateWhen { false }
 
@@ -92,11 +186,11 @@ services.each { Service svc ->
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
     }
 
-    def deployServices = tasks.register("deploy${svc.name}Services", Sync) {
-        println "Moving ${svc.name}-Services..."
+    def deployWebhookServices = tasks.register("generate${svc.name}WebhookServices", Sync) {
+        println "Moving ${svc.name}-WebhookServices..."
         group "deploy"
-        description "Move ${svc.name} into the repo."
-        dependsOn "deploy${svc.name}Models"
+        description "Move ${svc.name} webhook services into the repo."
+        dependsOn "generate${svc.name}WebhookModels"
         outputs.upToDateWhen { false }
 
         from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
@@ -105,24 +199,24 @@ services.each { Service svc ->
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
     }
 
-    def deployClients = tasks.register("deploy${svc.name}Clients", Sync) {
-        println "Moving ${svc.name}-Clients..."
+    def deployWebhookClients = tasks.register("generate${svc.name}WebhookClients", Sync) {
+        println "Moving ${svc.name}-WebhookClients..."
         group "deploy"
-        description "Move ${svc.name} into the repo."
-        dependsOn "deploy${svc.name}Services"
+        description "Move ${svc.name} webhook clients into the repo."
+        dependsOn "generate${svc.name}WebhookServices"
         outputs.upToDateWhen { false }
 
         from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
-            include 'HostConfiguration.cs', 'ClientUtils.cs'
+            include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs'
         }
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Client")
     }
 
-    def deployExtensions = tasks.register("deploy${svc.name}Extensions", Sync) {
-        println "Moving ${svc.name}-Extensions..."
-        group "deploy"
-        description "Move ${svc.name} into the repo."
-        dependsOn "deploy${svc.name}Clients"
+    def deployWebhookExtensions = tasks.register("generate${svc.name}WebhookExtensions", Sync) {
+        println "Moving ${svc.name}-WebhookExtensions..."
+        group "generate"
+        description "Move ${svc.name} webhook extensions into the repo."
+        dependsOn "generate${svc.name}WebhookClients"
         outputs.upToDateWhen { false }
 
         from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
@@ -133,7 +227,14 @@ services.each { Service svc ->
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
     }
 
-    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions }
+    // Generate webhook handlers for webhooks
+    if (serviceName.endsWith("Webhooks")) {
+        // Apply extra config for webhooks only
+        //templateDir.set("$projectDir/repo/templates-v7/csharp")
+        // Generate webhook handlers for webhooks
+        //configFile.set("$projectDir/config.yaml")
+        tasks.named(svc.id) { dependsOn deployWebhookModels, deployWebhookServices, deployWebhookClients, deployWebhookExtensions }
+    }
 }
 
 // Tests
