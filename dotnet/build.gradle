@@ -15,6 +15,19 @@ def services = project.ext.services as List<Service>
 services.each { Service svc ->
     def serviceName = project.ext.serviceNaming[svc.id] as String
 
+    def replaceReservedWords = { File dir ->
+        fileTree(dir).matching { include '**/*.cs' }.forEach { File file ->
+            def text = file.text
+
+            // Replaces reserved words with the proper name
+            // See list of reserved words: https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators/csharp.md#reserved-words
+            text = text.replace('VarEnvironment', 'Environment')
+                    .replace('VarVersion', 'Version')
+                    .replace('VarTimeZone', 'TimeZone')
+                    .replace('VarConfiguration', 'Configuration')
+        }
+    }
+
     // Generation
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
@@ -92,7 +105,11 @@ services.each { Service svc ->
             delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
         }
 
-        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/${serviceName}.Models")
+        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Models").get().asFile){
+            eachFile { FileCopyDetails copyDetails ->
+                replaceReservedWords(copyDetails.file)
+            }
+        }
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
     }
 
@@ -128,6 +145,9 @@ services.each { Service svc ->
 
         from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
             include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs'
+            eachFile { FileCopyDetails copyDetails ->
+                replaceReservedWords(copyDetails.file)
+            }
         }
         into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Client")
     }
@@ -169,68 +189,6 @@ services.each { Service svc ->
     }
 
     tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation }
-
-    // Deployment
-    def deployWebhookModels = tasks.register("generate${svc.name}WebhookModels", Sync) {
-        println "Moving ${svc.name}-WebhookModels..."
-        group "deploy"
-        description "Move ${svc.name} webhook models into the repo."
-        dependsOn "generate${svc.name}"
-        outputs.upToDateWhen { false }
-
-        from layout.buildDirectory.dir("services/$svc.id/src/Adyen/${serviceName}.Models")
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
-    }
-
-    def deployWebhookServices = tasks.register("generate${svc.name}WebhookServices", Sync) {
-        println "Moving ${svc.name}-WebhookServices..."
-        group "deploy"
-        description "Move ${svc.name} webhook services into the repo."
-        dependsOn "generate${svc.name}WebhookModels"
-        outputs.upToDateWhen { false }
-
-        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
-            exclude 'IApi.cs'
-        }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
-    }
-
-    def deployWebhookClients = tasks.register("generate${svc.name}WebhookClients", Sync) {
-        println "Moving ${svc.name}-WebhookClients..."
-        group "deploy"
-        description "Move ${svc.name} webhook clients into the repo."
-        dependsOn "generate${svc.name}WebhookServices"
-        outputs.upToDateWhen { false }
-
-        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
-            include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs'
-        }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Client")
-    }
-
-    def deployWebhookExtensions = tasks.register("generate${svc.name}WebhookExtensions", Sync) {
-        println "Moving ${svc.name}-WebhookExtensions..."
-        group "generate"
-        description "Move ${svc.name} webhook extensions into the repo."
-        dependsOn "generate${svc.name}WebhookClients"
-        outputs.upToDateWhen { false }
-
-        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
-            include 'IHostBuilderExtensions.cs', 'IServiceCollectionExtensions.cs'
-            rename('IHostBuilderExtensions.cs', 'HostBuilderExtensions.cs')
-            rename('IServiceCollectionExtensions.cs', 'ServiceCollectionExtensions.cs')
-        }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
-    }
-
-    // Generate webhook handlers for webhooks
-    if (serviceName.endsWith("Webhooks")) {
-        // Apply extra config for webhooks only
-        //templateDir.set("$projectDir/repo/templates-v7/csharp")
-        // Generate webhook handlers for webhooks
-        //configFile.set("$projectDir/config.yaml")
-        tasks.named(svc.id) { dependsOn deployWebhookModels, deployWebhookServices, deployWebhookClients, deployWebhookExtensions }
-    }
 }
 
 // Tests
