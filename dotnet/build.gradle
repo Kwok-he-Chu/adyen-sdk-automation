@@ -144,7 +144,7 @@ services.each { Service svc ->
         }
 
         from(layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
-            include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs'
+            include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs', 'ApiKeyToken.cs'
             eachFile { FileCopyDetails copyDetails ->
                 replaceReservedWords(copyDetails.file)
             }
