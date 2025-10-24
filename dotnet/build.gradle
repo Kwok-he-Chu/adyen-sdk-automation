@@ -21,7 +21,7 @@ services.each { Service svc ->
 
             // Replaces reserved words with the proper name
             // See list of reserved words: https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators/csharp.md#reserved-words
-            text = text.replace('VarEnvironment', 'Environment')
+            text.replace('VarEnvironment', 'Environment')
                     .replace('VarVersion', 'Version')
                     .replace('VarTimeZone', 'TimeZone')
                     .replace('VarConfiguration', 'Configuration')
@@ -47,39 +47,39 @@ services.each { Service svc ->
         // Use additionalProperties
         additionalProperties.putAll([
                 // Target framework version.
-                'targetFramework': 'net8.0',
+                'targetFramework'               : 'net8.0',
 
                 // Use library: generichost.
-                'library': 'generichost',
+                'library'                       : 'generichost',
 
                 // Your C# package name (convention: CamelCase).
-                'packageName': 'Adyen',
+                'packageName'                   : 'Adyen',
 
                 // The name of your core-folder.
-                'corePackageName': 'Core',
+                'corePackageName'               : 'Core',
 
                 // Service -suffix
-                'apiName': svc.name,
+                'apiName'                       : svc.name,
 
                 // Make API response's headers case-insensitive
                 'caseInsensitiveResponseHeaders': 'false',
 
                 // Override Equals and GetHashCode methods
-                'equatable': 'false',
+                'equatable'                     : 'false',
 
                 // Name of the API service.
-                'serviceName': serviceName,
+                'serviceName'                   : serviceName,
 
                 // Use nullable annotations in the project, only supported on C# 8 & ASP.NET Core 3.1+
                 // Starting in .NET 6.0 the default is true.
-                'nullableReferenceTypes': 'true',
+                'nullableReferenceTypes'        : 'true',
 
                 // Use DateTime to model date properties even if DateOnly supported. (.NET 6.0+ only)
-                'useDateTimeOffset': 'true',
+                'useDateTimeOffset'             : 'true',
 
                 // Use the discriminator's mapping in oneOf to speed up the model lookup.
                 // IMPORTANT NOTE: Validation (e.g. one and only one match in oneOf's schemas) will be skipped.
-                'useOneOfDiscriminatorLookup': 'true',
+                'useOneOfDiscriminatorLookup'   : 'true',
 
                 // Source generation is a feature that lets the compiler generate optimized code at build time, making JSON (de)serialization faster.
                 // This flag uses the SourceGenerationContext.mustache template to:
@@ -105,7 +105,7 @@ services.each { Service svc ->
             delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
         }
 
-        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Models").get().asFile){
+        from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Models").get().asFile) {
             eachFile { FileCopyDetails copyDetails ->
                 replaceReservedWords(copyDetails.file)
             }
@@ -143,7 +143,7 @@ services.each { Service svc ->
             delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Clients")
         }
 
-        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
+        from(layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
             include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs'
             eachFile { FileCopyDetails copyDetails ->
                 replaceReservedWords(copyDetails.file)
@@ -164,7 +164,7 @@ services.each { Service svc ->
             delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
         }
 
-        from (layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
+        from(layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
             include 'IHostBuilderExtensions.cs', 'IServiceCollectionExtensions.cs'
             rename('IHostBuilderExtensions.cs', 'HostBuilderExtensions.cs')
             rename('IServiceCollectionExtensions.cs', 'ServiceCollectionExtensions.cs')
@@ -184,7 +184,7 @@ services.each { Service svc ->
             delete layout.projectDirectory.dir("repo/docs/" + serviceName)
         }
 
-        from (layout.buildDirectory.dir("services/$svc.id/docs/apis").get().asFile)
+        from(layout.buildDirectory.dir("services/$svc.id/docs/apis").get().asFile)
         into layout.projectDirectory.dir("repo/docs/" + serviceName)
     }
 
