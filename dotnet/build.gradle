@@ -15,16 +15,32 @@ def services = project.ext.services as List<Service>
 services.each { Service svc ->
     def serviceName = project.ext.serviceNaming[svc.id] as String
 
-    def replaceReservedWords = { File dir ->
-        fileTree(dir).matching { include '**/*.cs' }.forEach { File file ->
+    // Function to replace reserved words for a given directory.
+    def replaceReservedWords = { File directory ->
+        fileTree(directory).matching { include '**/*.cs' }.forEach { File file ->
             def text = file.text
 
-            // Replaces reserved words with the proper name
             // See list of reserved words: https://github.com/OpenAPITools/openapi-generator/blob/master/docs/generators/csharp.md#reserved-words
-            text.replace('VarEnvironment', 'Environment')
-                    .replace('VarVersion', 'Version')
-                    .replace('VarTimeZone', 'TimeZone')
-                    .replace('VarConfiguration', 'Configuration')
+            def replaceFromTo = [
+                'VarEnvironment'  : 'Environment',
+                'varEnvironment'  : 'environment',
+                'VarVersion'      : 'Version',
+                'varVersion'      : 'version',
+                'VarTimeZone'     : 'TimeZone',
+                'varTimeZone'     : 'timeZone',
+                'VarConfiguration': 'Configuration',
+                'varConfiguration': 'configuration',
+            ]
+
+            // Replaces reserved words with the name without the `Var` or `var`-prefix.
+            replaceFromTo.each { from, to ->
+                if (text.contains(from)) {
+                    //println "Replacing ${from} → ${to} in ${file.name}"
+                    text = text.replace(from, to)
+                }
+            }
+
+            file.text = text
         }
     }
 
