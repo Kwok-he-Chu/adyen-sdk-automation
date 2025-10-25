@@ -106,6 +106,12 @@ services.each { Service svc ->
                 //     - Serialization: Generates methods for serializing objects to JSON.
                 //'useSourceGeneration': 'false',
         ])
+
+
+        if (serviceName.endsWith("Webhooks")) {
+            println("Set Config to generate WebhookHandler for ${serviceName}")
+            configFile.set("$projectDir/config.yaml")
+        }
     }
 
     // Deployment
@@ -118,7 +124,7 @@ services.each { Service svc ->
 
         // Delete existing models.
         doFirst {
-            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
+            delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Models")
         }
 
         from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Models").get().asFile) {
@@ -126,7 +132,7 @@ services.each { Service svc ->
                 replaceReservedWords(copyDetails.file)
             }
         }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Models")
+        into layout.projectDirectory.dir("repo/Adyen/${serviceName}/Models")
     }
 
     def deployServices = tasks.register("generate${svc.name}Services", Sync) {
@@ -138,13 +144,13 @@ services.each { Service svc ->
 
         // Delete existing services.
         doFirst {
-            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
+            delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Services")
         }
 
         from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
             exclude 'IApi.cs'
         }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Services")
+        into layout.projectDirectory.dir("repo/Adyen/${serviceName}/Services")
     }
 
     def deployClients = tasks.register("generate${svc.name}Clients", Sync) {
@@ -156,7 +162,7 @@ services.each { Service svc ->
 
         // Delete existing clients.
         doFirst {
-            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Clients")
+            delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Clients")
         }
 
         from(layout.buildDirectory.dir("services/$svc.id/src/Adyen/Client").get().asFile) {
@@ -165,7 +171,7 @@ services.each { Service svc ->
                 replaceReservedWords(copyDetails.file)
             }
         }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Client")
+        into layout.projectDirectory.dir("repo/Adyen/${serviceName}/Client")
     }
 
     def deployExtensions = tasks.register("generate${svc.name}Extensions", Sync) {
@@ -177,7 +183,7 @@ services.each { Service svc ->
 
         // Delete existing extensions.
         doFirst {
-            delete layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
+            delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Extensions")
         }
 
         from(layout.buildDirectory.dir("services/$svc.id/src/Adyen/Extensions").get().asFile) {
@@ -185,7 +191,7 @@ services.each { Service svc ->
             rename('IHostBuilderExtensions.cs', 'HostBuilderExtensions.cs')
             rename('IServiceCollectionExtensions.cs', 'ServiceCollectionExtensions.cs')
         }
-        into layout.projectDirectory.dir("repo/Adyen/" + serviceName + "/Extensions")
+        into layout.projectDirectory.dir("repo/Adyen/${serviceName}/Extensions")
     }
 
     def deployDocumentation = tasks.register("generate${svc.name}Documentation", Sync) {
@@ -197,14 +203,36 @@ services.each { Service svc ->
 
         // Delete existing docs.
         doFirst {
-            delete layout.projectDirectory.dir("repo/docs/" + serviceName)
+            delete layout.projectDirectory.dir("repo/docs/${serviceName}")
         }
 
         from(layout.buildDirectory.dir("services/$svc.id/docs/apis").get().asFile)
-        into layout.projectDirectory.dir("repo/docs/" + serviceName)
+        into layout.projectDirectory.dir("repo/docs/${serviceName}")
     }
 
-    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation }
+    def deployWebhookHandlers = tasks.register("generate${svc.name}WebhookHandlers") {
+        group 'deploy'
+        description "Move $svc.name handlers into the repo."
+        dependsOn "generate${svc.name}Models"
+        outputs.upToDateWhen { false }
+
+        doLast {
+            // Find generated WebhookHandler.cs
+            def sourceFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
+            // Move to service folder and rename (i.e. WebhookHandler.cs to `Configuration`WebhooksHandler.cs)
+            def targetDir = layout.projectDirectory.file("repo/Adyen/${serviceName}/Services").asFile
+            def targetFile = new File(targetDir, svc.name + "Service.cs")
+
+            if (sourceFile.exists()) {
+                sourceFile.renameTo(targetFile)
+                println "Moved ${sourceFile} to ${targetFile}"
+            } else {
+                println "Source file does not exist: ${sourceFile}"
+            }
+        }
+    }
+
+    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation, deployWebhookHandlers }
 }
 
 // Tests
