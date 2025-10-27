@@ -48,11 +48,11 @@ services.each { Service svc ->
     tasks.named("generate${svc.name}", GenerateTask) {
         println "Generating ${svc.name}..."
 
-        // Sets apiPackage name.
-        apiPackage.set("${svc.name}.Services")
-
         // Sets suffix of api.
         apiNameSuffix.set("Service")
+
+        // Sets apiPackage name for Services.
+        apiPackage.set("${svc.name}.Services")
 
         // Sets modelPackageName.
         modelPackage.set("${svc.name}.Models")
@@ -141,6 +141,7 @@ services.each { Service svc ->
         description "Move ${svc.name} into the repo."
         dependsOn "generate${svc.name}Models"
         outputs.upToDateWhen { false }
+        onlyIf { !svc.webhook } // Skip webhooks - This task is for generating service classes only, see deployWebhookHandlers instead.
 
         // Delete existing services.
         doFirst {
@@ -217,17 +218,25 @@ services.each { Service svc ->
         outputs.upToDateWhen { false }
 
         doLast {
-            // Find generated WebhookHandler.cs
-            def sourceFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
-            // Move to service folder and rename (i.e. WebhookHandler.cs to `Configuration`WebhooksHandler.cs)
-            def targetDir = layout.projectDirectory.file("repo/Adyen/${serviceName}/Services").asFile
-            def targetFile = new File(targetDir, svc.name + "Service.cs")
+            if (serviceName.endsWith("Webhooks")) {
+                // Find generated WebhookHandler.cs
+                def sourceFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
+                // Move file to the /handlers directory and prefix with the serviceName (e.g. WebhookHandler.cs -> `Configuration`WebhooksHandler.cs)
+                def targetDir = layout.projectDirectory.file("repo/Adyen/${serviceName}/Handlers").asFile
 
-            if (sourceFile.exists()) {
-                sourceFile.renameTo(targetFile)
-                println "Moved ${sourceFile} to ${targetFile}"
-            } else {
-                println "Source file does not exist: ${sourceFile}"
+                // Create /handlers directory if it doesn't exist
+                if (!targetDir.exists()) {
+                    targetDir.mkdirs()
+                }
+
+                def targetFile = new File(targetDir, svc.name + "Handler.cs")
+
+                if (sourceFile.exists()) {
+                    sourceFile.renameTo(targetFile)
+                    println "Moved ${sourceFile} to ${targetFile}"
+                } else {
+                    println "Source file does not exist: ${sourceFile}"
+                }
             }
         }
     }
