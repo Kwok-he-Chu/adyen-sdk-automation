@@ -108,7 +108,7 @@ services.each { Service svc ->
         ])
 
 
-        if (svc.isWebhook()) {
+        if (serviceName.endsWith("Webhooks")) {
             println("Set Config to generate WebhookHandler for ${serviceName}")
             configFile.set("$projectDir/config.yaml")
         }
@@ -171,7 +171,7 @@ services.each { Service svc ->
                 replaceReservedWords(copyDetails.file)
 
                 // Do not include the `Adyen.{{Webhook}}.Services` as namespace for webhooks.
-                if (copyDetails.name == 'HostConfiguration.cs' && svc.isWebhook()) {
+                if (copyDetails.name == 'HostConfiguration.cs' && serviceName.endsWith("Webhooks")) {
                     copyDetails.file.text = copyDetails.file.text.replace("using Adyen.${serviceName}.Services;", "")
                     println("Done replacing with ${{serviceName}}")
                 }
@@ -231,7 +231,7 @@ services.each { Service svc ->
         outputs.upToDateWhen { false }
 
         doLast {
-            if (svc.isWebhook()) {
+            if (serviceName.endsWith("Webhooks")) {
                 // Find generated WebhookHandler.cs.
                 def webhookHandlerFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
                 // Move file to the /handlers directory and prefix with the serviceName (e.g. WebhookHandler.cs -> `Configuration`WebhooksHandler.cs).
