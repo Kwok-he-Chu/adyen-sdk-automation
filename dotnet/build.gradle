@@ -205,6 +205,14 @@ services.each { Service svc ->
         // Delete existing docs.
         doFirst {
             delete layout.projectDirectory.dir("repo/docs/${serviceName}")
+
+            def docsDirectory = layout.projectDirectory.dir("repo/docs").getAsFile()
+
+            // Create /docs directory if it doesn't exist
+            if (!docsDirectory.exists()) {
+                docsDirectory.mkdirs()
+                println "Created /docs directory: ${docsDirectory}"
+            }
         }
 
         from(layout.buildDirectory.dir("services/$svc.id/docs/apis").get().asFile)
@@ -220,22 +228,22 @@ services.each { Service svc ->
         doLast {
             if (serviceName.endsWith("Webhooks")) {
                 // Find generated WebhookHandler.cs
-                def sourceFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
+                def webhookHandlerFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
                 // Move file to the /handlers directory and prefix with the serviceName (e.g. WebhookHandler.cs -> `Configuration`WebhooksHandler.cs)
-                def targetDir = layout.projectDirectory.file("repo/Adyen/${serviceName}/Handlers").asFile
+                def handlerDirectory = layout.projectDirectory.file("repo/Adyen/${serviceName}/Handlers").asFile
 
                 // Create /handlers directory if it doesn't exist
-                if (!targetDir.exists()) {
-                    targetDir.mkdirs()
+                if (!handlerDirectory.exists()) {
+                    handlerDirectory.mkdirs()
                 }
 
-                def targetFile = new File(targetDir, svc.name + "Handler.cs")
+                def targetFile = new File(handlerDirectory, svc.name + "Handler.cs")
 
-                if (sourceFile.exists()) {
-                    sourceFile.renameTo(targetFile)
-                    println "Moved ${sourceFile} to ${targetFile}"
+                if (webhookHandlerFile.exists()) {
+                    webhookHandlerFile.renameTo(targetFile)
+                    println "Moved ${webhookHandlerFile} to ${targetFile}"
                 } else {
-                    println "Source file does not exist: ${sourceFile}"
+                    println "Source file does not exist: ${webhookHandlerFile}"
                 }
             }
         }
