@@ -108,13 +108,12 @@ services.each { Service svc ->
         ])
 
 
-        if (serviceName.endsWith("Webhooks")) {
+        if (svc.isWebhook()) {
             println("Set Config to generate WebhookHandler for ${serviceName}")
             configFile.set("$projectDir/config.yaml")
         }
     }
 
-    // Deployment
     def deployModels = tasks.register("generate${svc.name}Models", Sync) {
         println "Moving ${svc.name}-Models..."
         group "deploy"
@@ -122,7 +121,7 @@ services.each { Service svc ->
         dependsOn "generate${svc.name}"
         outputs.upToDateWhen { false }
 
-        // Delete existing models.
+        // Delete existing /Models directory.
         doFirst {
             delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Models")
         }
@@ -143,7 +142,7 @@ services.each { Service svc ->
         outputs.upToDateWhen { false }
         onlyIf { !svc.webhook } // Skip webhooks - This task is for generating service classes only, see deployWebhookHandlers instead.
 
-        // Delete existing services.
+        // Delete existing /Services directory.
         doFirst {
             delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Services")
         }
@@ -161,7 +160,7 @@ services.each { Service svc ->
         dependsOn "generate${svc.name}Services"
         outputs.upToDateWhen { false }
 
-        // Delete existing clients.
+        // Delete existing /Clients directory.
         doFirst {
             delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Clients")
         }
@@ -170,6 +169,12 @@ services.each { Service svc ->
             include 'HostConfiguration.cs', 'ClientUtils.cs', 'JsonSerializerOptionsProvider.cs', 'ApiKeyToken.cs'
             eachFile { FileCopyDetails copyDetails ->
                 replaceReservedWords(copyDetails.file)
+
+                // Do not include the `Adyen.{{Webhook}}.Services` as namespace for webhooks.
+                if (copyDetails.name == 'HostConfiguration.cs' && svc.isWebhook()) {
+                    copyDetails.file.text = copyDetails.file.text.replace("using Adyen.${serviceName}.Services;", "")
+                    println("Done replacing with ${{serviceName}}")
+                }
             }
         }
         into layout.projectDirectory.dir("repo/Adyen/${serviceName}/Client")
@@ -182,7 +187,7 @@ services.each { Service svc ->
         dependsOn "generate${svc.name}Clients"
         outputs.upToDateWhen { false }
 
-        // Delete existing extensions.
+        // Delete existing /Extensions directory.
         doFirst {
             delete layout.projectDirectory.dir("repo/Adyen/${serviceName}/Extensions")
         }
@@ -202,13 +207,13 @@ services.each { Service svc ->
         dependsOn "generate${svc.name}Services"
         outputs.upToDateWhen { false }
 
-        // Delete existing docs.
         doFirst {
+            // Delete existing /docs directory.
             delete layout.projectDirectory.dir("repo/docs/${serviceName}")
 
             def docsDirectory = layout.projectDirectory.dir("repo/docs").getAsFile()
 
-            // Create /docs directory if it doesn't exist
+            // Create /docs directory if it doesn't exist.
             if (!docsDirectory.exists()) {
                 docsDirectory.mkdirs()
                 println "Created /docs directory: ${docsDirectory}"
@@ -226,13 +231,13 @@ services.each { Service svc ->
         outputs.upToDateWhen { false }
 
         doLast {
-            if (serviceName.endsWith("Webhooks")) {
-                // Find generated WebhookHandler.cs
+            if (svc.isWebhook()) {
+                // Find generated WebhookHandler.cs.
                 def webhookHandlerFile = layout.projectDirectory.file("build/services/$svc.id/src/Adyen/SupportingFiles/WebhookHandler.cs").getAsFile()
-                // Move file to the /handlers directory and prefix with the serviceName (e.g. WebhookHandler.cs -> `Configuration`WebhooksHandler.cs)
+                // Move file to the /handlers directory and prefix with the serviceName (e.g. WebhookHandler.cs -> `Configuration`WebhooksHandler.cs).
                 def handlerDirectory = layout.projectDirectory.file("repo/Adyen/${serviceName}/Handlers").asFile
 
-                // Create /handlers directory if it doesn't exist
+                // Create /handlers directory if it doesn't exist.
                 if (!handlerDirectory.exists()) {
                     handlerDirectory.mkdirs()
                 }
