@@ -29,7 +29,7 @@ List<Service> services = [
         new Service(name: 'Management', version: 3),
         new Service(name: 'BalanceControl', version: 1, small: true),
         // Adyen for Platforms
-        new Service(name: 'LegalEntityManagement', spec: 'LegalEntityService', version: 3),
+        new Service(name: 'LegalEntityManagement', spec: 'LegalEntityService', version: 4),
         new Service(name: 'BalancePlatform', version: 2),
         new Service(name: 'Transfers', spec: 'TransferService', version: 4),
         new Service(name: 'DataProtection', version: 1, small: true),
