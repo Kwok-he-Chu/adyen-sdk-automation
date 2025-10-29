@@ -30,6 +30,7 @@ services.each { Service svc ->
                 'varTimeZone'     : 'timeZone',
                 'VarConfiguration': 'Configuration',
                 'varConfiguration': 'configuration',
+                'wWWAuthenticate' : 'wwwAuthenticate',
             ]
 
             // Replaces reserved words with the name without the `Var` or `var`-prefix.
@@ -107,7 +108,6 @@ services.each { Service svc ->
                 //'useSourceGeneration': 'false',
         ])
 
-
         if (serviceName.endsWith("Webhooks")) {
             println("Set Config to generate WebhookHandler for ${serviceName}")
             configFile.set("$projectDir/config.yaml")
@@ -149,6 +149,9 @@ services.each { Service svc ->
 
         from(layout.buildDirectory.dir("services/${svc.id}/src/Adyen/${serviceName}.Services").get().asFile) {
             exclude 'IApi.cs'
+            eachFile { FileCopyDetails copyDetails ->
+                replaceReservedWords(copyDetails.file)
+            }
         }
         into layout.projectDirectory.dir("repo/Adyen/${serviceName}/Services")
     }
@@ -173,7 +176,7 @@ services.each { Service svc ->
                 // Do not include the `Adyen.{{Webhook}}.Services` as namespace for webhooks.
                 if (copyDetails.name == 'HostConfiguration.cs' && serviceName.endsWith("Webhooks")) {
                     copyDetails.file.text = copyDetails.file.text.replace("using Adyen.${serviceName}.Services;", "")
-                    println("Done replacing with ${{serviceName}}")
+                    println("Removed Adyen.${{serviceName}}.Services namespace in HostConfiguration.cs")
                 }
             }
         }
