@@ -257,7 +257,7 @@ services.each { Service svc ->
         }
     }
 
-    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, deployDocumentation, deployWebhookHandlers }
+    tasks.named(svc.id) { dependsOn deployModels, deployServices, deployClients, deployExtensions, /*deployDocumentation,*/ deployWebhookHandlers }
 }
 
 // Tests
