@@ -51,10 +51,8 @@ services.each { Service svc ->
             ]
 
             replaceFromTo.each { from, to ->
-                if (text.contains(from)) {
-                    //println "Replacing ${from} → ${to} in ${file.name}"
-                    text = text.replace(from, to)
-                }
+                //println "Replacing ${from} → ${to} in ${file.name}"
+                text = text.replace(from, to)
             }
             file.text = text
         }
