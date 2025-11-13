@@ -232,6 +232,7 @@ project.ext.services.each { Service svc ->
 
             // Check if the service name ends with "Webhooks"
             if (svc.name.endsWith("Webhooks") && json.containsKey("components") && json["components"].containsKey("schemas")) {
+                def addOnce = true
                 json["components"]["schemas"].each { Map.Entry schema ->
                     def properties = schema.value?.properties
                     // add 'x-webhook-root' to the webhook model (we find 'environment' and 'data' attributes)
@@ -248,8 +249,17 @@ project.ext.services.each { Service svc ->
                     if (schema.key.equals("DisputeNotificationRequest")) {
                         schema.value["x-webhook-root"] = true
                     }
+
+                    // Workaround
+                    // Mark one model `{{#x-has-at-least-one-webhook-root}}` as true. I could not extend this property at the root-level.
+                    // Context: {{#models}}{{#model.vendorExtensions.x-webhook-root}} -> {{#first}} won't work with multiple `x-webhook-root` extensions
+                    if (addOnce) {
+                        schema.value["x-has-at-least-one-webhook-root"] = true
+                        addOnce = false
+                    }
                 }
             }
+
             specFile.text = JsonOutput.prettyPrint(JsonOutput.toJson(json))
         }
     }
