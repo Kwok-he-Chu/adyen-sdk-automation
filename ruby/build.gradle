@@ -32,9 +32,7 @@ services.<Service> each { Service svc ->
 
         // when generating Classic Payment add prefix for service classes
         if (serviceName == 'payment') {
-            additionalProperties.putAll([
-                    'classicPrefix': 'Classic',
-            ])
+            additionalProperties.classicPrefix = 'Classic'
         }
     }
 
