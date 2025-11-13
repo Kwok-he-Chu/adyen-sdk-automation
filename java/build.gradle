@@ -25,6 +25,7 @@ tasks.withType(GenerateTask).configureEach {
             'openApiNullable': 'false',
             'enumPropertyNaming': "legacy",
             'javaxPackage': 'jakarta',
+            "containerDefaultToNull" : "true"
     ])
 
     // for webhooks apply extra config.yaml (to generate WebhookHandler)
@@ -38,6 +39,25 @@ services.each { Service svc ->
 
     def serviceName = project.ext.serviceNaming[svc.id] as String
     def serviceId = serviceName.toLowerCase()
+
+    // words replacement to enforce naming conventions (after code generation)
+    def replaceReservedWords = { File directory ->
+
+        fileTree(directory).matching { include '**/*.java' }.forEach { File file ->
+            def text = file.text
+
+            def replaceFromTo = [
+                    'wwWAuthenticate' : 'wwwAuthenticate',
+            ]
+
+            replaceFromTo.each { from, to ->
+                //println "Replacing ${from} → ${to} in ${file.name}"
+                text = text.replace(from, to)
+            }
+            file.text = text
+        }
+    }
+
 
     // Copy models
     def deployModels = tasks.register("deploy${svc.name}Models", Copy) {
@@ -55,6 +75,10 @@ services.each { Service svc ->
         from layout.buildDirectory.dir("services/$svc.id/src/main/java/com/adyen/model")
         into layout.projectDirectory.dir("repo/src/main/java/com/adyen/model")
 
+        // post processing
+        doLast {
+            replaceReservedWords(layout.projectDirectory.dir("repo/src/main/java/com/adyen/model/${serviceId}").asFile)
+        }
     }
 
     // Copy services
@@ -72,6 +96,11 @@ services.each { Service svc ->
         // copy newly generated services
         from layout.buildDirectory.dir("services/$svc.id/src/main/java/com/adyen/service/${serviceId}")
         into layout.projectDirectory.dir("repo/src/main/java/com/adyen/service/" + serviceId)
+
+        // post processing
+        doLast {
+            replaceReservedWords(layout.projectDirectory.dir("repo/src/main/java/com/adyen/service/${serviceId}").asFile)
+        }
     }
 
     // Copy serializers
@@ -121,28 +150,40 @@ services.each { Service svc ->
     tasks.named(svc.id) { dependsOn deployModels, deployServices, deploySerializers, deployWebhookHandlers }
 }
 
-// Test small services generation
+// Test binlookup  generation
 tasks.named('binlookup') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/binlookup/Amount.java").exists()
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/BinLookupApi.java").exists()
+        // verify DefaultApi class no longer exists (it has been renamed to BinLookupApi)
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/binlookup/DefaultApi.java").exists()
     }
 }
-// Test services generation
+// Test checkout generation
 tasks.named('checkout') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/checkout/Amount.java").exists()
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/checkout/PaymentsApi.java").exists()
     }
 }
-// Test webhooks generation
+// Test acswebhooks generation
 tasks.named('acswebhooks') {
     doLast {
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/acswebhooks/Amount.java").exists()
+        // verify no service package is created for a webhook
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/acswebhooks").exists()
+        // verify no API class is created for a webhook
         assert !file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/AcsWebhooksApi.java").exists()
+        // verify Webhook Handler is created
         assert file("${layout.projectDirectory}/repo/src/main/java/com/adyen/model/acswebhooks/AcsWebhooksHandler.java").exists()
+    }
+}
+
+// Test balanceplatform generation
+tasks.named('balanceplatform') {
+    doLast {
+        def fileContent = file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/balanceplatform/ScaAssociationManagementApi.java").text
+        assert fileContent.contains("wwwAuthenticate")
     }
 }
 

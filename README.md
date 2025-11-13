@@ -1,3 +1,5 @@
+[![Update SDKs](https://github.com/Adyen/adyen-sdk-automation/actions/workflows/gradle.yml/badge.svg)](https://github.com/Adyen/adyen-sdk-automation/actions/workflows/gradle.yml)
+
 # Adyen SDK Automation
 
 This is a set of Gradle build scripts to generate code for `Adyen/adyen-*-api-library` repositories. 
