@@ -29,6 +29,13 @@ services.<Service> each { Service svc ->
                 'apis': '',
                 'supportingFiles': ''
         ])
+
+        // when generating Classic Payment add prefix for service classes
+        if (serviceName == 'payment') {
+            additionalProperties.putAll([
+                    'classicPrefix': 'Classic',
+            ])
+        }
     }
 
     // Copy services
