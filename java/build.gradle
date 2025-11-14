@@ -182,8 +182,9 @@ tasks.named('acswebhooks') {
 // Test balanceplatform generation
 tasks.named('balanceplatform') {
     doLast {
+        // HTTP header not found in signature
         def fileContent = file("${layout.projectDirectory}/repo/src/main/java/com/adyen/service/balanceplatform/ScaAssociationManagementApi.java").text
-        assert fileContent.contains("wwwAuthenticate")
+        assert !fileContent.contains("wwwAuthenticate")
     }
 }
 
