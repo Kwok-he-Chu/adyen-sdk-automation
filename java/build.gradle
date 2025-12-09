@@ -28,10 +28,16 @@ tasks.withType(GenerateTask).configureEach {
             "containerDefaultToNull" : "true"
     ])
 
-    // for webhooks apply extra config.yaml (to generate WebhookHandler)
+    // for webhooks only apply extra config.yaml (to generate WebhookHandler)
     if (serviceId.endsWith("webhooks")) {
         configFile.set("$projectDir/config.yaml")
     }
+
+    // for APIs only add custom code to handle nullable properties
+    if (!serviceId.endsWith("webhooks")) {
+        additionalProperties.handleNullableProperties = true
+    }
+
 }
 
 // Deployment: copy and rename models/services
