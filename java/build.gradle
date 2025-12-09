@@ -28,13 +28,11 @@ tasks.withType(GenerateTask).configureEach {
             "containerDefaultToNull" : "true"
     ])
 
-    // for webhooks only apply extra config.yaml (to generate WebhookHandler)
     if (serviceId.endsWith("webhooks")) {
+        // for webhooks only apply extra config.yaml (to generate WebhookHandler)
         configFile.set("$projectDir/config.yaml")
-    }
-
-    // for APIs only add custom code to handle nullable properties
-    if (!serviceId.endsWith("webhooks")) {
+    } else {
+        // for APIs only add custom code to handle nullable properties
         additionalProperties.handleNullableProperties = true
     }
 
