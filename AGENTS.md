@@ -67,11 +67,13 @@ You can now run the Gradle commands to generate code for the linked library. The
 
 Replace `java`, `php`, `go`, and `node` with the target language of your choice (`dotnet`, `python`, `ruby`).
 
-## Language-Specific Generation Logic
+## Language-Specific and Core Generation Logic
 
 While the core generation is handled by OpenAPI Generator, each language requires specific logic to handle naming conventions, file placement, and library-specific conventions. This logic is defined within each language's `build.gradle` file.
 
-For detailed implementation, refer to the following files using Java as an example:
+The central, language-agnostic generation logic is defined in [`buildSrc/src/main/groovy/adyen.sdk-automation-conventions.gradle`](buildSrc/src/main/groovy/adyen.sdk-automation-conventions.gradle). This file contains the complete list of API services, defines the main Gradle generation tasks, and includes pre-processing steps to adapt the OpenAPI specifications for our needs.
+
+For detailed implementation of language-specific logic, refer to the following files using Java as an example:
 
 *   **Java**: The generation and post-processing steps (e.g., copying files, renaming webhook handlers) are defined in `java/build.gradle`. Webhook-specific generation is configured in `java/config.yaml`.
 
