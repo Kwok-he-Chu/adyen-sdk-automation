@@ -74,6 +74,13 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Get OpenAPI commit SHA
+        if: steps.changes.outputs.changed == 'true'
+        id: vars
+        run: |
+          echo "sha=$(cd schema && git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$(cd schema && git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Create Pull Request
         if: steps.changes.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
@@ -85,7 +92,7 @@ jobs:
           branch: sdk-automation/${{ matrix.service }}
           title: '[${{ matrix.service }}] Code generation: update services and models'
           body: |
-            OpenAPI spec files or templates have been modified.
             This PR contains the automated changes for the `${{ matrix.service }}` service.
-          commit-message: |
-            [${{ matrix.service }}] [adyen-sdk-automation] automated change
+
+            The commit history of this PR reflects the `adyen-openapi` commits that have been applied.
+          commit-message: '[${{ matrix.service }}] Automated update from adyen-openapi@${{ steps.vars.outputs.sha_short }}'
