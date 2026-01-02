@@ -216,4 +216,4 @@ jobs:
             This PR contains the automated changes for the `${{ matrix.service }}` service.
 
             The commit history of this PR reflects the `adyen-openapi` commits that have been applied.
-          commit-message: '[${{ matrix.service }}] Automated update from adyen-openapi@${{ steps.vars.outputs.sha_short }}'
+          commit-message: '[${{ matrix.service }}] Automated update from Adyen/adyen-openapi@${{ steps.vars.outputs.sha_short }}'
