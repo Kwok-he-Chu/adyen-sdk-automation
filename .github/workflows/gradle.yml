@@ -22,7 +22,7 @@ jobs:
   generate:
     strategy:
       matrix:
-        project: [ java, node, dotnet, python, ruby ]
+        project: [ node, dotnet, python, ruby ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
