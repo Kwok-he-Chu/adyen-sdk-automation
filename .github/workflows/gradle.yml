@@ -139,7 +139,7 @@ jobs:
           body: ${{ steps.vars.outputs.pr_body }}
           commit-message: |
             [adyen-sdk-automation] automated changes
-  generate-java-service:
+  generate-per-service:
     strategy:
       fail-fast: false
       matrix:
