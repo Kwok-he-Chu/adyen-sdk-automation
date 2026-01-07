@@ -49,6 +49,14 @@ List<Service> services = [
         new Service(name: 'TokenizationWebhooks', spec: 'TokenizationNotification', version: 1, tag: 'Webhooks')
 ]
 
+// For now, introduce Capital only for Python.
+// Services is a static list consumed at Gradle configuration time for service-specific task generation:
+//   e.g., X -> generateXService,  deployX{Models, Services}
+// Thus, lib-specific generation must be handled at convention-plugin level (instead of subproject level)
+if (project.name == "python") {
+    services.add(new Service(name: 'Capital', version: 1, tag: "Platforms"))
+}
+
 ext {
     generator = project.name
     templates = 'templates'
@@ -215,12 +223,13 @@ project.ext.smallServices.each { Service svc ->
     tasks.named("generate$svc.name") { dependsOn ungroup }
 }
 
-import groovy.json.JsonSlurper
-import groovy.json.JsonOutput
-
 // update OpenAPI file of the webhooks to add a custom extension 'x-webhook-root' to the model that represents the webhook payload
 // this is necessary to generate the WebhookHandler that deserialises the Webhook models
 project.ext.services.each { Service svc ->
+    // unnecessary to create webhook-related tasks for services/specs not related to webhooks
+    if (!svc.webhook) {
+        return
+    }
     def addWebhookExtension = tasks.register("addWebhookExtension${svc.name}") {
         group 'specs'
         description "Add x-webhook-root extension to ${svc.name}"
@@ -229,8 +238,7 @@ project.ext.services.each { Service svc ->
             def specFile = file("$rootDir/schema/json/${svc.filename}")
             def json = new JsonSlurper().parse(specFile)
 
-            // Check if the service name ends with "Webhooks"
-            if (svc.name.endsWith("Webhooks") && json.containsKey("components") && json["components"].containsKey("schemas")) {
+            if (json.containsKey("components") && json["components"].containsKey("schemas")) {
                 json["components"]["schemas"].each { Map.Entry schema ->
                     def properties = schema.value?.properties
                     // add 'x-webhook-root' to the webhook model (we find 'environment' and 'data' attributes)
