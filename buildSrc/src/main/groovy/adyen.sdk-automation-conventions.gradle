@@ -7,6 +7,10 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
 
+def props = new Properties()
+rootProject.file("buildSrc/gradle.properties").withInputStream { props.load(it) }
+project.ext.openApiVersion = props.getProperty('openapiGeneratorVersion')
+
 repositories {
     // Use Maven Central for resolving dependencies.
     mavenCentral()
@@ -166,6 +170,9 @@ tasks.register('cloneRepo', Exec) {
 
 // Disable generator caching
 tasks.withType(GenerateTask).configureEach {
+    doFirst {
+        println "Using OpenAPI Generator version ${project.openApiVersion}"
+    }
     outputs.upToDateWhen { false }
     outputs.cacheIf { false }
 }
