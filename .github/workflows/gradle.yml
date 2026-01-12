@@ -199,10 +199,6 @@ jobs:
         with:
           path: ${{ matrix.project }}/repo
 
-      - name: Clean up formatting action
-        if: always() && steps.prep_action.outputs.action_exists == 'true'
-        run: rm -rf ./.temp-format-action
-
       - name: Check for changes
         id: changes
         working-directory: ${{ matrix.project }}/repo
