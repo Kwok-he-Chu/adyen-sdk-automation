@@ -65,7 +65,7 @@ jobs:
         title: ${{ steps.vars.outputs.pr_title }}
         body: ${{ steps.vars.outputs.pr_body }}
         commit-message: |
-          ${{ contains(fromJSON('["go", "php", "node"]'), matrix.project) && '[reformat]' }}[adyen-sdk-automation] automated change
+          ${{ (matrix.project == 'node' && '[reformat]') || '' }}[adyen-sdk-automation] automated change
   # split generation (create multiple PRs)
   generate-modules:
     runs-on: ubuntu-latest
@@ -170,7 +170,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Override properties
-        if: matrix.project == 'node' || matrix.project == 'java'
+        if: matrix.project == 'node' || matrix.project == 'java' || matrix.project == 'python'  || matrix.project == 'ruby'
         env:
           PROJECT: ${{ matrix.project }}
         run: cp $PROJECT/gradle.properties buildSrc
@@ -181,12 +181,29 @@ jobs:
           SERVICE: ${{ matrix.service }}
         run: ./gradlew $PROJECT:$SERVICE
 
+      - name: Check for and prepare formatting action
+        id: prep_action
+        # Some libraries have a formatting action in their repository, so we check for it and copy it to a temporary directory to use it later.
+        run: |
+          if [[ -f "${{ matrix.project }}/repo/.github/actions/format/action.yml" ]]; then
+            echo "format_action_exists=true" >> "$GITHUB_OUTPUT"
+            mkdir -p ./.temp-format-action
+            cp -r "${{ matrix.project }}/repo/.github/actions/format" ./.temp-format-action/
+          else
+            echo "format_action_exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Format Code
+        # We run the formatting action if it exists.
+        if: steps.prep_action.outputs.format_action_exists == 'true'
+        uses: ./.temp-format-action/format
+        with:
+          path: ${{ matrix.project }}/repo
+
       - name: Check for changes
         id: changes
-        env:
-          PROJECT: ${{ matrix.project }}
+        working-directory: ${{ matrix.project }}/repo
         run: |
-          cd $PROJECT/repo
           if git diff --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -194,7 +211,6 @@ jobs:
           fi
 
       - name: Get OpenAPI commit SHA
-        if: steps.changes.outputs.changed == 'true'
         id: vars
         run: |
           echo "sha=$(cd schema && git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
