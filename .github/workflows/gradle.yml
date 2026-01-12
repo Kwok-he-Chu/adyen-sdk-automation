@@ -184,17 +184,19 @@ jobs:
 
       - name: Check for and prepare formatting action
         id: prep_action
+        # Some libraries have a formatting action in their repository, so we check for it and copy it to a temporary directory to use it later.
         run: |
           if [[ -f "${{ matrix.project }}/repo/.github/actions/format/action.yml" ]]; then
-            echo "action_exists=true" >> "$GITHUB_OUTPUT"
+            echo "format_action_exists=true" >> "$GITHUB_OUTPUT"
             mkdir -p ./.temp-format-action
             cp -r "${{ matrix.project }}/repo/.github/actions/format" ./.temp-format-action/
           else
-            echo "action_exists=false" >> "$GITHUB_OUTPUT"
+            echo "format_action_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Format Code
-        if: steps.prep_action.outputs.action_exists == 'true'
+        # We run the formatting action if it exists.
+        if: steps.prep_action.outputs.format_action_exists == 'true'
         uses: ./.temp-format-action/format
         with:
           path: ${{ matrix.project }}/repo
