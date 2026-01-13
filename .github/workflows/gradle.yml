@@ -73,7 +73,7 @@ jobs:
     # each iteration generates a group of services and creates a PR
     strategy:
       matrix:
-        project: [ php, go ]
+        project: [ go ]
         tag: [PaymentsAPIs, ManagementAPIs, PlatformsAPIs, Webhooks]
 
     steps:
