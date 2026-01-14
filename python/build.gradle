@@ -56,13 +56,26 @@ services.<Service> each { Service svc ->
         }
     }
 
-    tasks.named(svc.id) { dependsOn deployServices}
+    tasks.named(svc.id) { dependsOn deployServices }
 }
 
-// Tests
-tasks.named('checkout') {
-    doLast {
-        assert file("${layout.projectDirectory}/repo/Adyen/services/checkout/payments_api.py").exists()
-        assert file("${layout.projectDirectory}/repo/Adyen/services/checkout/__init__.py").exists()
+// TODO: Review how to generalize this to other libs
+/**
+ * Configures a service lifecycle tasks to perform a final sanity check: ensure that given files exists at the expected location.
+ * @param serviceName the service to be checked
+ * @param files the expected files
+ */
+def assertServiceFilesExist(String serviceName, List<String> files) {
+    tasks.named(serviceName) {
+        // Hooks into this lifecycle task to do a sanity check: ensure that the given files
+        // exists in the expected location
+        doLast {
+            files.forEach {
+                assert file("${layout.projectDirectory}/repo/Adyen/services/${serviceName}/" + it).exists()
+            }
+        }
     }
 }
+
+assertServiceFilesExist('checkout', ["payments_api.py", "__init__.py"])
+assertServiceFilesExist('capital', ["__init__.py", "grants_api.py", "grant_offers_api.py", "grant_accounts_api.py"])
