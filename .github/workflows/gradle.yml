@@ -40,7 +40,7 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v4
     - name: Override properties
-      if: matrix.project == 'node' || matrix.project == 'java' || matrix.project == 'python'  || matrix.project == 'ruby'
+      if: matrix.project == 'dotnet' || matrix.project == 'node' || matrix.project == 'java' || matrix.project == 'python'  || matrix.project == 'ruby'
       env:
         PROJECT: ${{ matrix.project }}
       run: cp $PROJECT/gradle.properties buildSrc
