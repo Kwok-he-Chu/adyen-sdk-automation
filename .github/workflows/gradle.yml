@@ -22,7 +22,7 @@ jobs:
   generate:
     strategy:
       matrix:
-        project: [ node, dotnet, python, ruby ]
+        project: [ dotnet, python, ruby ]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -141,7 +141,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [ java, php ]
+        project: [ java, php, node ]
         service: [
           checkout, payout, recurring, binlookup, posmobile, paymentsapp, disputes, storedvalue, payment,
           management, balancecontrol, legalentitymanagement, balanceplatform, transfers, dataprotection,
