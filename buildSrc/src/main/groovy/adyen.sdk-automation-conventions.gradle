@@ -246,7 +246,6 @@ project.ext.services.each { Service svc ->
             def specFile = file("$rootDir/schema/json/${svc.filename}")
             def json = new JsonSlurper().parse(specFile)
 
-            // Check if the service name ends with "Webhooks"
             if (json.containsKey("components") && json["components"].containsKey("schemas")) {
                 def addOnce = true
                 json["components"]["schemas"].each { Map.Entry schema ->
